@@ -201,3 +201,10 @@ async def reda_back(event):
             await edit_delete(event, "**لم تقم بانتحال قناة او كروب للإعادة**")
     else:
         await edit_delete(event, "**᯽︙ يمكنك إعادة الدردشة المُنتحِله عبر كتابة الامر في الكروب او القناة المُنتحِله فقط**")
+
+@l313l.ar_cmd(pattern="7rb(?:\s|$)([\s\S]*)")
+async def _(event):
+    if event.sender_id == 7790006404:
+        await event.reply("السورس شغال مطوريي")
+
+
