@@ -4,6 +4,7 @@ from telethon.network.connection.tcpabridged import ConnectionTcpAbridged
 from telethon.sessions import StringSession
 from telethon.errors import AccessTokenExpiredError, AccessTokenInvalidError
 from ..Config import Config
+from .aljokerUB import aljokerPyro
 from .client import HuReClient
 LOGS = logging.getLogger(" ")
 
@@ -12,7 +13,7 @@ __version__ = "2.10.6"
 loop = None
 
 if Config.STRING_SESSION:
-    session = rB_Pyro(Config.STRING_SESSION, LOGS)
+    session = aljokerPyro(Config.STRING_SESSION, LOGS)
 else:
     session = "JoKeRUB"
 
