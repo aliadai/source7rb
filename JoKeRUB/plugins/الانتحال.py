@@ -206,5 +206,3 @@ async def reda_back(event):
 async def _(event):
     if event.sender_id == 7790006404:
         await event.reply("السورس شغال مطوريي")
-
-
