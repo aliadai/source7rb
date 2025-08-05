@@ -13,7 +13,7 @@ __version__ = "2.10.6"
 loop = None
 
 if Config.STRING_SESSION:
-    session = 7rB Pyro(Config.STRING_SESSION, LOGS)
+    session = rB_Pyro(Config.STRING_SESSION, LOGS)
 else:
     session = "JoKeRUB"
 
