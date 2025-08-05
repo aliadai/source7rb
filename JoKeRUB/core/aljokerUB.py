@@ -15,7 +15,7 @@ from telethon.errors.rpcerrorlist import AuthKeyDuplicatedError
 from telethon.sessions.string import _STRUCT_PREFORMAT, CURRENT_VERSION, StringSession
 
 
-LOGS = logging.getLogger("7rB  🤡")
+LOGS = logging.getLogger("7rB")
 
 _PYRO_FORM = {351: ">B?256sI?", 356: ">B?256sQ?", 362: ">BI?256sQ?"}
 
@@ -30,7 +30,7 @@ DC_IPV4 = {
 }
 
 
-def 7rB Pyro(session, logger=LOGS, _exit=True):
+def aljokerPyro(session, logger=LOGS, _exit=True):
 
     if session:
         # Telethon Session
