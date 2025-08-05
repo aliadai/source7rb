@@ -1,6 +1,6 @@
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-from JoKeRUB.exampleconfig import APP_ID, APP_HASH, STRING_SESSION  # عدل المسار إذا لزم
+from ..exampleconfig import APP_ID, APP_HASH, STRING_SESSION  # استيراد نسبي صحيح
 
 def rB_Pyro(string_session, logs):
     if not isinstance(string_session, str):
