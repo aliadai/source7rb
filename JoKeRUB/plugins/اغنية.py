@@ -3,6 +3,8 @@ import base64
 import io
 import urllib.parse
 import os
+import yt_dlp
+import re
 from pathlib import Path
 
 from ShazamAPI import Shazam
@@ -14,7 +16,7 @@ from validators.url import url
 
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.functions import delete_conv, name_dl, song_dl, video_dl, yt_search
+from ..helpers.functions import delete_conv
 from ..helpers.tools import media_type
 from ..helpers.utils import _catutils, reply_id
 from . import l313l
@@ -29,7 +31,116 @@ SONG_SEARCH_STRING = "<code>يجؤة الانتظار قليلا يتم البح
 SONG_NOT_FOUND = "<code>عذرا لا يمكنني ايجاد اي اغنيه مثل هذه</code>"
 SONG_SENDING_STRING = "<code>جارِ الارسال انتظر قليلا...</code>"
 # =========================================================== #
-#                                                             #
+#                       HELPER FUNCTIONS                      #
+# =========================================================== #
+
+async def yt_search(query):
+    """البحث في يوتيوب وإرجاع رابط أول فيديو"""
+    try:
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extractflat': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            search_results = ydl.extract_info(
+                f"ytsearch1:{query}",
+                download=False
+            )
+            if search_results and 'entries' in search_results and search_results['entries']:
+                video_id = search_results['entries'][0]['id']
+                return f"https://www.youtube.com/watch?v={video_id}"
+    except Exception as e:
+        LOGS.error(f"خطأ في البحث: {e}")
+    return None
+
+async def download_song(video_url, quality="128"):
+    """تحميل الأغنية من يوتيوب"""
+    try:
+        temp_dir = "./temp"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': f'{temp_dir}/%(title)s.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': quality,
+            }],
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+            title = info.get('title', 'Unknown')
+            # تنظيف اسم الملف
+            clean_title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            audio_file = f"{temp_dir}/{clean_title}.mp3"
+            thumbnail_file = f"{temp_dir}/{clean_title}.jpg"
+            
+            # تحميل الصورة المصغرة
+            if info.get('thumbnail'):
+                ydl_thumb_opts = {
+                    'writethumbnail': True,
+                    'outtmpl': f'{temp_dir}/%(title)s.%(ext)s',
+                    'quiet': True,
+                    'skip_download': True,
+                }
+                with yt_dlp.YoutubeDL(ydl_thumb_opts) as ydl_thumb:
+                    ydl_thumb.download([video_url])
+            
+            return audio_file, thumbnail_file, clean_title
+    except Exception as e:
+        LOGS.error(f"خطأ في تحميل الأغنية: {e}")
+        return None, None, None
+
+async def download_video(video_url):
+    """تحميل الفيديو من يوتيوب"""
+    try:
+        temp_dir = "./temp"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        ydl_opts = {
+            'format': 'best[height<=720]/best',
+            'outtmpl': f'{temp_dir}/%(title)s.%(ext)s',
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+            title = info.get('title', 'Unknown')
+            # تنظيف اسم الملف
+            clean_title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            
+            # البحث عن الملف المحمل
+            for ext in ['mp4', 'mkv', 'webm']:
+                video_file = f"{temp_dir}/{clean_title}.{ext}"
+                if os.path.exists(video_file):
+                    break
+            else:
+                video_file = None
+                
+            thumbnail_file = f"{temp_dir}/{clean_title}.jpg"
+            
+            # تحميل الصورة المصغرة
+            if info.get('thumbnail'):
+                ydl_thumb_opts = {
+                    'writethumbnail': True,
+                    'outtmpl': f'{temp_dir}/%(title)s.%(ext)s',
+                    'quiet': True,
+                    'skip_download': True,
+                }
+                with yt_dlp.YoutubeDL(ydl_thumb_opts) as ydl_thumb:
+                    ydl_thumb.download([video_url])
+            
+            return video_file, thumbnail_file, clean_title
+    except Exception as e:
+        LOGS.error(f"خطأ في تحميل الفيديو: {e}")
+        return None, None, None
+
 # =========================================================== #
 
 @l313l.ar_cmd(
@@ -58,42 +169,33 @@ async def _(event):
     cat = base64.b64decode("YnkybDJvRG04WEpsT1RBeQ==")
     catevent = await edit_or_reply(event, "⌔∮ جاري البحث عن المطلوب انتظر")
     video_link = await yt_search(str(query))
-    if not url(video_link):
+    if not video_link:
         return await catevent.edit(
             f"⌔∮ عذرا لم استطع ايجاد مقاطع ذات صلة بـ `{query}`"
         )
+    
     cmd = event.pattern_match.group(1)
-    q = "320k" if cmd == "320" else "128k"
-    song_cmd = song_dl.format(QUALITY=q, video_link=video_link)
-    name_cmd = name_dl.format(video_link=video_link)
+    quality = "320" if cmd == "320" else "128"
+    
     try:
         cat = Get(cat)
         await event.client(cat)
     except BaseException:
         pass
-    try:
-        stderr = (await _catutils.runcmd(song_cmd))[1]
-        # if stderr:
-        # await catevent.edit(f"**خطأ :** `{stderr}`")
-        catname, stderr = (await _catutils.runcmd(name_cmd))[:2]
-        if stderr:
-            return await catevent.edit(f"**خطأ :** `{stderr}`")
-        catname = os.path.splitext(catname)[0]
-        song_file = Path(f"{catname}.mp3")
-        catname = urllib.parse.unquote(catname)
-    except:
-        pass
-    if not os.path.exists(song_file):
+    
+    await catevent.edit("⌔∮ جاري تحميل الأغنية انتظر...")
+    song_file, catthumb, title = await download_song(video_link, quality)
+    
+    if not song_file or not os.path.exists(song_file):
         return await catevent.edit(
-            f"⌔∮ عذرا لم استطع ايجاد مقاطع ذات صله بـ `{query}`"
+            f"⌔∮ عذرا لم استطع تحميل الأغنية `{query}`"
         )
+    
     await catevent.edit("**⌔∮ جارِ الارسال انتظر قليلاً**")
-    catthumb = Path(f"{catname}.jpg")
-    if not os.path.exists(catthumb):
-        catthumb = Path(f"{catname}.webp")
-    elif not os.path.exists(catthumb):
+    
+    # التحقق من وجود الصورة المصغرة
+    if catthumb and not os.path.exists(catthumb):
         catthumb = None
-    title = catname.replace("./temp/", "").replace("_", "|")
     try:
         await event.client.send_file(
             event.chat_id,
@@ -136,41 +238,30 @@ async def _(event):
     cat = base64.b64decode("YnkybDJvRG04WEpsT1RBeQ==")
     catevent = await edit_or_reply(event, "⌔∮ جاري البحث عن المطلوب انتظر")
     video_link = await yt_search(str(query))
-    if not url(video_link):
+    if not video_link:
         return await catevent.edit(
             f"⌔∮ عذرا لم استطع ايجاد مقاطع ذات صلة بـ `{query}`"
         )
+    
     try:
         cat = Get(cat)
         await event.client(cat)
     except BaseException:
         pass
-    name_cmd = name_dl.format(video_link=video_link)
-    video_cmd = video_dl.format(video_link=video_link)
-    try:
-        stderr = (await _catutils.runcmd(video_cmd))[1]
-        # if stderr:
-        # return await catevent.edit(f"**Error :** `{stderr}`")
-        catname, stderr = (await _catutils.runcmd(name_cmd))[:2]
-        if stderr:
-            return await catevent.edit(f"**Error :** `{stderr}`")
-        catname = os.path.splitext(catname)[0]
-        vsong_file = Path(f"{catname}.mp4")
-    except:
-        pass
-    if not os.path.exists(vsong_file):
-        vsong_file = Path(f"{catname}.mkv")
-    elif not os.path.exists(vsong_file):
+    
+    await catevent.edit("⌔∮ جاري تحميل الفيديو انتظر...")
+    vsong_file, catthumb, title = await download_video(video_link)
+    
+    if not vsong_file or not os.path.exists(vsong_file):
         return await catevent.edit(
-            f"⌔∮ عذرا لم استطع ايجاد مقاطع ذات صلة بـ `{query}`"
+            f"⌔∮ عذرا لم استطع تحميل الفيديو `{query}`"
         )
+    
     await catevent.edit("**⌔∮ جاري الارسال انتظر قليلا**")
-    catthumb = Path(f"{catname}.jpg")
-    if not os.path.exists(catthumb):
-        catthumb = Path(f"{catname}.webp")
-    elif not os.path.exists(catthumb):
+    
+    # التحقق من وجود الصورة المصغرة
+    if catthumb and not os.path.exists(catthumb):
         catthumb = None
-    title = catname.replace("./temp/", "").replace("_", "|")
     await event.client.send_file(
         event.chat_id,
         vsong_file,
@@ -276,3 +367,4 @@ async def _(event):
         )
         await catevent.delete()
         await delete_conv(event, chat, purgeflag)
+
