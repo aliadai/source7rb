@@ -9,8 +9,27 @@ from JoKeRUB import l313l
 from ..core import check_owner
 from ..Config import Config
 
-JEP_IC = "https://telegra.ph/file/762989c65df81fc2e96d7.jpg"
-ROE = "**♰ هـذه هي قائمة اوامـر سـورس 7rB  ♰**"
+JEP_IC = None
+ROE = """**مرحباً بك في سورس روبن الشفافة**
+
+**قائمة الأوامر المتاحة:**
+
+**1 - أوامر الإدمن**
+**2 - أوامر البوت**
+**3 - الحساب**
+**4 - المجموعات**
+**5 - الصيغ والجهات**
+**6 - الحماية وتلكراف**
+**7 - أوامر التسلية**
+**8 - الترحيبات والردود**
+**9 - أوامر المساعدة**
+**10 - الملصقات والصور**
+**11 - التكرار والتنظيف**
+**12 - الترفيه**
+**13 - الأكستـرا**
+**14 - الانتحال والتقليد**
+
+**اختر الرقم المطلوب من الأزرار أدناه**"""
 
 if Config.TG_BOT_USERNAME is not None and tgbot is not None:
 
@@ -22,56 +41,41 @@ if Config.TG_BOT_USERNAME is not None and tgbot is not None:
         await bot.get_me()
         if query.startswith("اوامري") and event.query.user_id == bot.uid:
             buttons = [
-                [Button.inline("☪︎ اوامر الادمن ☪︎", data="l313l0")],
+                [Button.inline("1", data="l313l0")],
                 [
-                    Button.inline("☪︎ اوامر البوت ☪︎", data="rozbot"),
-                    Button.inline("☪︎ الحساب ☪︎", data="Jmrz"),
-                    Button.inline("☪︎ المجموعات ☪︎", data="gro"),
+                    Button.inline("2", data="rozbot"),
+                    Button.inline("3", data="Jmrz"),
                 ],
                 [
-                    Button.inline("☪︎ الصيغ و الجهات ☪︎", data="sejrz"),
-                    Button.inline("☪︎ الحماية و تلكراف ☪︎", data="grrz"),
+                    Button.inline("4", data="gro"),
+                    Button.inline("5", data="sejrz"),
                 ],
                 [
-                    Button.inline("☪︎ اوامر التسلية ☪︎", data="tslrzj"),
-                    Button.inline("☪︎ الترحيبات والردود ☪︎", data="r7brz"),
+                    Button.inline("6", data="grrz"),
+                    Button.inline("7", data="tslrzj"),
                 ],
                 [
-                    Button.inline("☪︎ اومر المساعدة ☪︎", data="krrznd"),
-                    Button.inline("☪︎ الملصقات وصور ☪︎", data="jrzst"),
+                    Button.inline("8", data="r7brz"),
+                    Button.inline("9", data="krrznd"),
                 ],
                 [
-                    Button.inline("☪︎ التكرار والتنظيف ☪︎", data="krrznd"),
-                    Button.inline("☪︎ الترفيه ☪︎", data="rfhrz"),
+                    Button.inline("10", data="jrzst"),
+                    Button.inline("11", data="iiers"),
                 ],
                 [
-                    Button.inline("☪︎ التكرار والتنظيف ☪︎", data="iiers"),
-                    Button.inline("☪︎ الملصقات وصور ☪︎", data="jrzst"),
+                    Button.inline("12", data="rfhrz"),
+                    Button.inline("13", data="extra"),
                 ],
                 [
-                    Button.inline("☪︎ الأكستـرا ☪︎", data="iiers"),
-                    Button.inline("☪︎ الانتحال والتقليد ☪︎", data="uscuxrz"),
+                    Button.inline("14", data="uscuxrz"),
                 ],
             ]
-            if JEP_IC and JEP_IC.endswith((".jpg", ".png", "gif", "mp4")):
-                result = builder.photo(
-                    JEP_IC, text=ROE, buttons=buttons, link_preview=False
-                )
-            elif JEP_IC:
-                result = builder.document(
-                    JEP_IC,
-                    title="JoKeRUB",
-                    text=ROE,
-                    buttons=buttons,
-                    link_preview=False,
-                )
-            else:
-                result = builder.article(
-                    title="JoKeRUB",
-                    text=ROE,
-                    buttons=buttons,
-                    link_preview=False,
-                )
+            result = builder.article(
+                title="سورس روبن الشفافة",
+                text=ROE,
+                buttons=buttons,
+                link_preview=False,
+            )
             await event.answer([result] if result else None)
 
 
@@ -206,8 +210,17 @@ async def _(event):
     await event.edit(T7SHIZ, buttons=buttons)
 
 
+@l313l.tgbot.on(CallbackQuery(data=re.compile(rb"extra")))
+@check_owner
+async def _(event):
+    buttons = [
+    [
+     Button.inline("التالي", data="uscuxrz"),
+     Button.inline("رجوع", data="rfhrz")]]
+    await event.edit(HERP, buttons=buttons)
+
 @l313l.tgbot.on(CallbackQuery(data=re.compile(rb"uscuxrz")))
 @check_owner
 async def _(event):
-    buttons = [[Button.inline("رجوع", data="l313l0"),]]
+    buttons = [[Button.inline("رجوع", data="extra"),]]
     await event.edit(CLORN, buttons=buttons)
