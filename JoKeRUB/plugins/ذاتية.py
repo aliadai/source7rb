@@ -1,6 +1,7 @@
 #all write Codes By Team 7rB  @RobinSource
 #By Hussein @F_O_1
 import asyncio
+import re
 from telethon import events
 from telethon.tl.types import MessageMediaDocument, MessageMediaPhoto
 from JoKeRUB import l313l
@@ -11,96 +12,112 @@ plugin_category = "tools"
 
 # متغير لحفظ حالة تفعيل/إلغاء تفعيل حفظ الرسائل الذاتية
 save_self_destruct = False
+# قائمة الروابط المراقبة
+monitored_links = []
 
-@l313l.on(admin_cmd(pattern="الذاتية"))
-async def toggle_self_destruct_save(event):
-    """تفعيل/إلغاء تفعيل حفظ الرسائل الذاتية"""
-    global save_self_destruct
+@l313l.on(admin_cmd(pattern=r"ذاتية (.+)"))
+async def add_link_monitor(event):
+    """إضافة رابط أو أكثر لمراقبة الرسائل الذاتية"""
+    global monitored_links
     
-    if save_self_destruct:
-        save_self_destruct = False
-        await event.edit("**᯽︙ تم إيقاف حفظ الرسائل الذاتية ❌**")
-    else:
-        save_self_destruct = True
-        await event.edit("**᯽︙ تم تفعيل حفظ الرسائل الذاتية ✅**\n**᯽︙ سيتم حفظ جميع الرسائل الذاتية في الرسائل المحفوظة دون فتحها**")
-
-@l313l.on(events.NewMessage(incoming=True))
-async def save_self_destructing_messages(event):
-    """حفظ الرسائل الذاتية عند وصولها"""
-    global save_self_destruct
+    links_text = event.pattern_match.group(1)
+    # استخراج الروابط من النص
+    urls = re.findall(r'https?://[^\s]+', links_text)
     
-    # التحقق من أن الميزة مفعلة
-    if not save_self_destruct:
+    if not urls:
+        await event.edit("**᯽︙ لم يتم العثور على روابط صحيحة**")
         return
     
-    # التحقق من أن الرسالة ذاتية التدمير
+    added_count = 0
+    for url in urls:
+        if url not in monitored_links:
+            monitored_links.append(url)
+            added_count += 1
+    
+    if added_count > 0:
+        await event.edit(f"**᯽︙ تم إضافة {added_count} رابط للمراقبة ✅**")
+    else:
+        await event.edit("**᯽︙ جميع الروابط موجودة مسبقاً**")
+
+@l313l.on(admin_cmd(pattern="تفعيل الذاتية"))
+async def enable_self_destruct(event):
+    """تفعيل مراقبة الرسائل الذاتية"""
+    global save_self_destruct
+    save_self_destruct = True
+    await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
+
+@l313l.on(admin_cmd(pattern="تعطيل الذاتية"))
+async def disable_self_destruct(event):
+    """تعطيل مراقبة الرسائل الذاتية"""
+    global save_self_destruct
+    save_self_destruct = False
+    await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
+
+@l313l.on(admin_cmd(pattern="قائمة الذاتية"))
+async def list_monitored_links(event):
+    """عرض قائمة الروابط المراقبة"""
+    global monitored_links
+    
+    if not monitored_links:
+        await event.edit("**᯽︙ لا توجد روابط مراقبة**")
+        return
+    
+    links_text = "**᯽︙ الروابط المراقبة:**\n"
+    for i, link in enumerate(monitored_links, 1):
+        links_text += f"{i}. {link}\n"
+    
+    await event.edit(links_text)
+
+@l313l.on(admin_cmd(pattern="حذف الذاتية"))
+async def clear_monitored_links(event):
+    """حذف جميع الروابط المراقبة"""
+    global monitored_links
+    monitored_links.clear()
+    await event.edit("**᯽︙ تم حذف جميع الروابط المراقبة**")
+
+@l313l.on(admin_cmd(pattern="حالة الذاتية"))
+async def check_status(event):
+    """عرض حالة المراقبة"""
+    global save_self_destruct, monitored_links
+    
+    status = "مفعل ✅" if save_self_destruct else "معطل ❌"
+    links_count = len(monitored_links)
+    
+    await event.edit(f"**᯽︙ حالة المراقبة:** {status}\n**᯽︙ عدد الروابط:** {links_count}")
+
+@l313l.on(events.NewMessage(incoming=True))
+async def monitor_self_destruct(event):
+    """مراقبة الرسائل الذاتية من الروابط المحددة"""
+    global save_self_destruct, monitored_links
+    
+    if not save_self_destruct or not monitored_links:
+        return
+    
     if not hasattr(event.message, 'ttl_period') or not event.message.ttl_period:
         return
     
     try:
-        # معلومات الرسالة
         sender = await event.get_sender()
-        sender_name = sender.first_name if sender.first_name else "مجهول"
-        sender_username = f"@{sender.username}" if sender.username else "بدون يوزر"
-        chat = await event.get_chat()
-        chat_title = chat.title if hasattr(chat, 'title') and chat.title else "محادثة خاصة"
+        sender_username = f"@{sender.username}" if sender.username else None
         
-        # إنشاء نص الرسالة المحفوظة
-        saved_message = f"**᯽︙ رسالة ذاتية محفوظة**\n"
-        saved_message += f"**᯽︙ من:** {sender_name} ({sender_username})\n"
-        saved_message += f"**᯽︙ في:** {chat_title}\n"
-        saved_message += f"**᯽︙ مدة التدمير:** {event.message.ttl_period} ثانية\n"
-        saved_message += f"**᯽︙ التاريخ:** {event.message.date.strftime('%Y-%m-%d %H:%M:%S')}\n"
-        saved_message += "**᯽︙ المحتوى:**\n"
-        
-        # إضافة نص الرسالة إن وجد
-        if event.message.text:
-            saved_message += f"{event.message.text}\n"
-        
-        # حفظ الرسالة في الرسائل المحفوظة
-        if event.message.media:
-            # إذا كانت الرسالة تحتوي على ميديا
-            if isinstance(event.message.media, (MessageMediaPhoto, MessageMediaDocument)):
-                await l313l.send_message(
-                    "me",
-                    saved_message,
-                    file=event.message.media
-                )
-            else:
-                await l313l.send_message("me", saved_message)
+        # التحقق من أن المرسل من الروابط المراقبة
+        if sender_username:
+            sender_link = f"https://t.me/{sender.username}"
+            if sender_link not in monitored_links:
+                return
         else:
-            # رسالة نصية فقط
+            return
+        
+        # حفظ الرسالة
+        saved_message = f"**᯽︙ رسالة ذاتية من:** {sender.first_name or 'مجهول'} ({sender_username})\n"
+        
+        if event.message.text:
+            saved_message += f"**᯽︙ النص:** {event.message.text}\n"
+        
+        if event.message.media:
+            await l313l.send_message("me", saved_message, file=event.message.media)
+        else:
             await l313l.send_message("me", saved_message)
             
-    except Exception as e:
-        # في حالة حدوث خطأ، نرسل إشعار للمستخدم
-        try:
-            await l313l.send_message(
-                "me", 
-                f"**᯽︙ خطأ في حفظ الرسالة الذاتية:**\n{str(e)}"
-            )
-        except:
-            pass
-
-@l313l.on(admin_cmd(pattern="حالة الذاتية"))
-async def check_self_destruct_status(event):
-    """التحقق من حالة تفعيل حفظ الرسائل الذاتية"""
-    global save_self_destruct
-    
-    status = "مفعل ✅" if save_self_destruct else "معطل ❌"
-    await event.edit(f"**᯽︙ حالة حفظ الرسائل الذاتية:** {status}")
-
-# معلومات الأوامر
-CMD_HELP.update({
-    "الذاتية": """**اسم الإضافة:** الذاتية
-**الوصف:** حفظ الرسائل الذاتية في الرسائل المحفوظة دون فتحها
-
-**الأوامر:**
-`.الذاتية` - تفعيل/إيقاف حفظ الرسائل الذاتية
-`.حالة الذاتية` - عرض حالة تفعيل الميزة
-
-**الاستخدام:**
-عند تفعيل الأمر، سيتم حفظ جميع الرسائل الذاتية التي تصلك في الرسائل المحفوظة مع معلومات المرسل والتاريخ دون فتح الرسالة الأصلية.
-
-**ملاحظة:** الميزة تعمل فقط عن طريق الراب (الرسائل الواردة)."""
-})
+    except:
+        pass
