@@ -33,11 +33,31 @@ async def add_link_monitor(event):
     else:
         await event.edit("**᯽︙ جميع الروابط موجودة مسبقاً**")
 
-@l313l.on(admin_cmd(pattern="تفعيل الذاتية|الذاتية تفعيل|الذاتيه تفعيل|الذاتية|الذاتيه"))
+@l313l.on(admin_cmd(pattern="تفعيل الذاتية"))
 async def enable_self_destruct(event):
     global save_self_destruct
     save_self_destruct = True
     await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
+
+@l313l.on(admin_cmd(pattern="الذاتية$"))
+async def toggle_self_destruct(event):
+    global save_self_destruct
+    if save_self_destruct:
+        save_self_destruct = False
+        await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
+    else:
+        save_self_destruct = True
+        await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
+
+@l313l.on(admin_cmd(pattern="الذاتيه$"))
+async def toggle_self_destruct2(event):
+    global save_self_destruct
+    if save_self_destruct:
+        save_self_destruct = False
+        await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
+    else:
+        save_self_destruct = True
+        await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
 
 @l313l.on(admin_cmd(pattern="تعطيل الذاتية"))
 async def disable_self_destruct(event):
