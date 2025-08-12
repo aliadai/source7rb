@@ -27,7 +27,7 @@ JOKRDEV = [1374312239, 393120911, 7182427468,5564802580]
 #===============================================================
 
 
-async def 7rB _4ever():
+async def hrb_4ever():
     BRANCH = "HuRe"
     REPO = "yamosa"
     if REPO:
@@ -58,7 +58,7 @@ async def 7rB _4ever():
 async def Hussein(event):
     "To reload Your bot"
     joker = await edit_or_reply(event, "** ᯽︙ انتظر 2-3 دقيقة, جارِ اعادة التشغيل...**")
-    await 7rB _4ever()
+    await hrb_4ever()
     await event.client.reload(joker)
 
 @l313l.ar_cmd(
@@ -111,7 +111,7 @@ async def Hussein(event):
         if owner_id == l313l.uid:
             if event.message.message == "اعادة تشغيل":
                 joker = await event.reply("** ᯽︙ بالخدمة مطوري سيتم اعادة تشغيل السورس 😘..**")
-                await 7rB _4ever()
+                await hrb_4ever()
                 await event.client.reload(joker)
                     
 @l313l.on(events.NewMessage(incoming=True))
