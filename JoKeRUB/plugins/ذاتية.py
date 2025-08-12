@@ -1,129 +1,81 @@
-import asyncio
-import re
+from SedUb import l313l
+from ..sql_helper.globals import addgvar, delgvar, gvarstatus
+import os
+import datetime
 from telethon import events
-from telethon.tl.types import MessageMediaDocument, MessageMediaPhoto
-from JoKeRUB import l313l
-from ..helpers import admin_cmd
-from ..helpers.utils import reply_id
+from SedUb import *
+#ها يالفاشل شعدك داخل هنا 🫣 اعتمد ع نفسك لتخلي سورس سيدثون مصدر طشت سورسك
+Sedthon_Asbo3 = {
+    'Monday': 'الاثنين',
+    'Tuesday': 'الثلاثاء',
+    'Wednesday': 'الأربعاء',
+    'Thursday': 'الخميس',
+    'Friday': 'الجمعة',
+    'Saturday': 'السبت',
+    'Sunday': 'الأحد'
+}
 
-plugin_category = "tools"
-
-save_self_destruct = False
-monitored_links = []
-
-@l313l.on(admin_cmd(pattern=r"ذاتية (.+)"))
-async def add_link_monitor(event):
-    global monitored_links
-    
-    links_text = event.pattern_match.group(1)
-    urls = re.findall(r'https?://[^\s]+', links_text)
-    
-    if not urls:
-        await event.edit("**᯽︙ لم يتم العثور على روابط صحيحة**")
-        return
-    
-    added_count = 0
-    for url in urls:
-        if url not in monitored_links:
-            monitored_links.append(url)
-            added_count += 1
-    
-    if added_count > 0:
-        await event.edit(f"**᯽︙ تم إضافة {added_count} رابط للمراقبة ✅**")
+@l313l.on(admin_cmd(pattern="(جلب الصورة|جلب الصوره|ذاتيه|ذاتية)"))
+async def dato(event):
+    if not event.is_reply:
+        return await event.edit("..")
+    bilal = await event.get_reply_message()
+    pic = await bilal.download_media()
+    await bot.send_file(
+        "me",
+        pic,
+        caption=f"""
+- تـم حفظ الصـورة بنجـاح ✓ 
+- غير مبري الذمه اذا استخدمت الامر للابتزاز
+- CH: @RobinSource
+- Dev: @is7rb
+  """,
+    )
+    await event.delete()
+#By @VEEVVW For You 🌹
+@l313l.on(admin_cmd(pattern="(الذاتية تشغيل|ذاتية تشغيل)"))
+async def reda(event):
+    if gvarstatus ("savepicforme"):
+        return await edit_delete(event, "**᯽︙حفظ الذاتيات مفعل وليس بحاجة للتفعيل مجدداً **")
     else:
-        await event.edit("**᯽︙ جميع الروابط موجودة مسبقاً**")
-
-@l313l.on(admin_cmd(pattern="تفعيل الذاتية"))
-async def enable_self_destruct(event):
-    global save_self_destruct
-    save_self_destruct = True
-    await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
-
-@l313l.on(admin_cmd(pattern="الذاتية$"))
-async def toggle_self_destruct(event):
-    global save_self_destruct
-    if save_self_destruct:
-        save_self_destruct = False
-        await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
+        addgvar("savepicforme", "reda")
+        await edit_delete(event, "**᯽︙تم تفعيل ميزة حفظ الذاتيات بنجاح ✓**")
+ 
+@l313l.on(admin_cmd(pattern="(الذاتية تعطيل|ذاتية تعطيل)"))
+async def Reda_Is_Here(event):
+    if gvarstatus ("savepicforme"):
+        delgvar("savepicforme")
+        return await edit_delete(event, "**᯽︙تم تعطيل حفظت الذاتيات بنجاح ✓**")
     else:
-        save_self_destruct = True
-        await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
+        await edit_delete(event, "**᯽︙انت لم تفعل حفظ الذاتيات لتعطيلها!**")
 
-@l313l.on(admin_cmd(pattern="الذاتيه$"))
-async def toggle_self_destruct2(event):
-    global save_self_destruct
-    if save_self_destruct:
-        save_self_destruct = False
-        await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
-    else:
-        save_self_destruct = True
-        await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
+def joker_unread_media(message):
+    return message.media_unread and (message.photo or message.video)
 
-@l313l.on(admin_cmd(pattern="تعطيل الذاتية"))
-async def disable_self_destruct(event):
-    global save_self_destruct
-    save_self_destruct = False
-    await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
+async def Hussein(event, caption):
+    media = await event.download_media()
+    sender = await event.get_sender()
+    sender_id = event.sender_id
+    bilal_date = event.date.strftime("%Y-%m-%d")
+    bilal_day = Sedthon_Asbo3[event.date.strftime("%A")]
+    await bot.send_file(
+        "me",
+        media,
+        caption=caption.format(sender.first_name, sender_id, bilal_date, bilal_day),
+        parse_mode="markdown"
+    )
+    os.remove(media)
 
-@l313l.on(admin_cmd(pattern="قائمة الذاتية"))
-async def list_monitored_links(event):
-    global monitored_links
-    
-    if not monitored_links:
-        await event.edit("**᯽︙ لا توجد روابط مراقبة**")
-        return
-    
-    links_text = "**᯽︙ الروابط المراقبة:**\n"
-    for i, link in enumerate(monitored_links, 1):
-        links_text += f"{i}. {link}\n"
-    
-    await event.edit(links_text)
-
-@l313l.on(admin_cmd(pattern="حذف الذاتية"))
-async def clear_monitored_links(event):
-    global monitored_links
-    monitored_links.clear()
-    await event.edit("**᯽︙ تم حذف جميع الروابط المراقبة**")
-
-@l313l.on(admin_cmd(pattern="حالة الذاتية"))
-async def check_status(event):
-    global save_self_destruct, monitored_links
-    
-    status = "مفعل ✅" if save_self_destruct else "معطل ❌"
-    links_count = len(monitored_links)
-    
-    await event.edit(f"**᯽︙ حالة المراقبة:** {status}\n**᯽︙ عدد الروابط:** {links_count}")
-
-@l313l.on(events.NewMessage(incoming=True))
-async def monitor_self_destruct(event):
-    global save_self_destruct, monitored_links
-    
-    if not save_self_destruct or not monitored_links:
-        return
-    
-    if not hasattr(event.message, 'ttl_period') or not event.message.ttl_period:
-        return
-    
-    try:
-        sender = await event.get_sender()
-        sender_username = f"@{sender.username}" if sender.username else None
-        
-        if sender_username:
-            sender_link = f"https://t.me/{sender.username}"
-            if sender_link not in monitored_links:
-                return
-        else:
-            return
-        
-        saved_message = f"**᯽︙ رسالة ذاتية من:** {sender.first_name or 'مجهول'} ({sender_username})\n"
-        
-        if event.message.text:
-            saved_message += f"**᯽︙ النص:** {event.message.text}\n"
-        
-        if event.message.media:
-            await l313l.send_message("me", saved_message, file=event.message.media)
-        else:
-            await l313l.send_message("me", saved_message)
-            
-    except:
-        pass
+@l313l.on(events.NewMessage(func=lambda e: e.is_private and joker_unread_media(e) and e.sender_id != bot.uid))
+async def Reda(event):
+    if gvarstatus("savepicforme"):
+        caption = """**
+           ♡  غير مبري الذمة اذا استعملته للأبتزاز  ♡
+♡ تم حفظ الذاتية بنجاح ✓
+♡ تم الصنع : @veevvw
+♡ أسم المرسل : [{0}](tg://user?id={1})
+♡  تاريخ الذاتية : `{2}`
+♡  أرسلت في يوم `{3}`
+       ♡    RobinSource    ♡
+        **"""
+        await Hussein(event, caption
