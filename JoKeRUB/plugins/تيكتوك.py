@@ -1,5 +1,4 @@
 
-#Reda
 import asyncio 
 import shutil
 import requests
@@ -13,53 +12,140 @@ from datetime import timedelta
 import math
 import base64
 from JoKeRUB import l313l 
-#from ..Config import Config
-#By Reda
-@l313l.ar_cmd(pattern="تك")
-async def tiktok_dl(event):
-    ms = event.message.message
-    ms = ms.replace(".تك", "")
-    if event:
-            if ("https://tiktok.com/" in ms or "https://vm.tiktok.com/" in ms):
-                await event.message.delete()
-                a = await l313l.send_message(event.chat_id, 'يجري البحث عن الملف..')
-                link = ms.strip()
-                try:
-                    response = requests.get(f"https://godownloader.com/api/tiktok-no-watermark-free?url={link}&key=godownloader.com")
-                    data = response.json()
-                    #print(data)
-                    video_link = data["video_no_watermark"]
-                    response = requests.get(video_link)
-                    video_data = response.content
-                    directory = str(round(time.time()))
-                    filename = str(int(time.time()))+'.mp4'
-                    os.mkdir(directory)
-                    video_filename = f"{directory}/{filename}"
-                    with open(video_filename, "wb") as file:
-                        file.write(video_data)
-                
-                except JSONDecodeError:
-                    return await a.edit("الرابط غير صحيح تأكد منه!")
-                except Exception as er:
-                    if 'video_no_watermark' in str(er):
-                        return await a.edit("**رابط الفيديو غير صحيح تأكد منه واعد المحاولة**")
-                    return await a.edit(f"حدث خطأ قم بتوجيه الرسالة الى مطوري @rd0r0\n{er}")
-            
-            
-                
-                await a.edit(f' يجري التحميل للخادم..!\n'
-                   f' يجري الرفع للتلجرام⏳__')
-                start = time.time()
-                title = "فيديو"
-                filesize_bytes = os.path.getsize(video_filename)
-                filesize = filesize_bytes / (1024 * 1024)
-                catid = await reply_id(event.message)
-                await l313l.send_file(
-                   event.chat_id, f"{directory}/{filename}", reply_to=catid,     force_document=False,     caption=f"**الملف : ** {filename}\n**الحجم :**     {round(filesize, 1)} MB"
-                 )
+import yt_dlp
+
+def detect_platform(url):
+    url = url.lower()
+    if 'tiktok.com' in url or 'vm.tiktok.com' in url:
+        return 'tiktok'
+    elif 'instagram.com' in url:
+        return 'instagram'
+    elif 'youtube.com' in url or 'youtu.be' in url:
+        return 'youtube'
+    elif 'twitter.com' in url or 'x.com' in url:
+        return 'twitter'
+    elif 'facebook.com' in url or 'fb.watch' in url:
+        return 'facebook'
+    elif 'snapchat.com' in url:
+        return 'snapchat'
+    elif 'pinterest.com' in url or 'pin.it' in url:
+        return 'pinterest'
+    else:
+        return 'unknown'
+
+async def download_with_ytdlp(url):
+    platform = detect_platform(url)
+    
+    if platform == 'pinterest':
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': '%(epoch)s.%(ext)s',
+            'no_warnings': True,
+        }
+    else:
+        ydl_opts = {
+            'format': 'best[ext=mp4]/best',
+            'outtmpl': '%(epoch)s.%(ext)s',
+            'no_warnings': True,
+            'extractaudio': False,
+            'embed_subs': False,
+            'writesubtitles': False,
+            'writeautomaticsub': False,
+        }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+            description = info.get('description', info.get('title', 'محتوى'))
+            if description and len(description) > 200:
+                description = description[:200] + '...'
+            return filename, description or 'محتوى'
+    except Exception as e:
+        raise e
+
+@l313l.ar_cmd(pattern="حمل\+(.*)")
+async def universal_dl(event):
+    link = event.pattern_match.group(1).strip()
+    
+    if not link:
+        return await event.reply("الاستخدام: .حمل+الرابط")
+    
+    # Delete original message
+    await event.message.delete()
+    
+    # Send processing message
+    a = await l313l.send_message(event.chat_id, '⏳ جاري تحميل الفيديو...')
+    
+    try:
+        # Detect platform
+        platform = detect_platform(link)
         
-                await a.delete()
-     
-                shutil.rmtree(directory)
-    #else:
-       # return None
+        # Create temporary directory
+        directory = str(round(time.time()))
+        os.makedirs(directory, exist_ok=True)
+        
+        # Change to temp directory for download
+        original_dir = os.getcwd()
+        os.chdir(directory)
+        
+        try:
+            # Download using yt-dlp for universal support
+            filename, title = await download_with_ytdlp(link)
+            
+            # Get file info
+            filesize_bytes = os.path.getsize(filename)
+            filesize = filesize_bytes / (1024 * 1024)
+            
+            # Change back to original directory
+            os.chdir(original_dir)
+            
+            # Update status
+            await a.edit('📤 جاري رفع الفيديو...')
+            
+            # Get reply ID
+            try:
+                from ..helpers.utils import reply_id
+                catid = await reply_id(event)
+            except:
+                catid = None
+            
+            # Send the file
+            caption_text = f"{title}\n\nتم جلبه بواسطة @RobinSource"
+            
+            await l313l.send_file(
+                event.chat_id, 
+                f"{directory}/{filename}", 
+                reply_to=catid,
+                force_document=False,
+                caption=caption_text
+            )
+            
+        finally:
+            # Change back to original directory if still in temp
+            if os.getcwd().endswith(directory):
+                os.chdir(original_dir)
+        
+        # Delete processing message
+        await a.delete()
+        
+        # Clean up temporary directory
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+            
+    except Exception as er:
+        # Clean up on error
+        if os.getcwd().endswith(directory):
+            os.chdir(original_dir)
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+            
+        error_msg = str(er)
+        if "not supported" in error_msg.lower():
+            await a.edit("هذا الرابط غير مدعوم حالياً")
+        elif "private" in error_msg.lower():
+            await a.edit("هذا المحتوى خاص ولا يمكن تحميله")
+        elif "not found" in error_msg.lower():
+            await a.edit("الرابط غير صحيح أو المحتوى محذوف")
+        else:
+            await a.edit(f"حدث خطأ في التحميل\n{error_msg}")
