@@ -1,5 +1,3 @@
-#all write Codes By Team 7rB  @RobinSource
-#By Hussein @F_O_1
 import asyncio
 import re
 from telethon import events
@@ -10,18 +8,14 @@ from ..helpers.utils import reply_id
 
 plugin_category = "tools"
 
-# متغير لحفظ حالة تفعيل/إلغاء تفعيل حفظ الرسائل الذاتية
 save_self_destruct = False
-# قائمة الروابط المراقبة
 monitored_links = []
 
 @l313l.on(admin_cmd(pattern=r"ذاتية (.+)"))
 async def add_link_monitor(event):
-    """إضافة رابط أو أكثر لمراقبة الرسائل الذاتية"""
     global monitored_links
     
     links_text = event.pattern_match.group(1)
-    # استخراج الروابط من النص
     urls = re.findall(r'https?://[^\s]+', links_text)
     
     if not urls:
@@ -39,23 +33,20 @@ async def add_link_monitor(event):
     else:
         await event.edit("**᯽︙ جميع الروابط موجودة مسبقاً**")
 
-@l313l.on(admin_cmd(pattern="تفعيل الذاتية"))
+@l313l.on(admin_cmd(pattern="تفعيل الذاتية|الذاتية تفعيل|الذاتيه تفعيل|الذاتية|الذاتيه"))
 async def enable_self_destruct(event):
-    """تفعيل مراقبة الرسائل الذاتية"""
     global save_self_destruct
     save_self_destruct = True
     await event.edit("**᯽︙ تم تفعيل مراقبة الرسائل الذاتية ✅**")
 
 @l313l.on(admin_cmd(pattern="تعطيل الذاتية"))
 async def disable_self_destruct(event):
-    """تعطيل مراقبة الرسائل الذاتية"""
     global save_self_destruct
     save_self_destruct = False
     await event.edit("**᯽︙ تم تعطيل مراقبة الرسائل الذاتية ❌**")
 
 @l313l.on(admin_cmd(pattern="قائمة الذاتية"))
 async def list_monitored_links(event):
-    """عرض قائمة الروابط المراقبة"""
     global monitored_links
     
     if not monitored_links:
@@ -70,14 +61,12 @@ async def list_monitored_links(event):
 
 @l313l.on(admin_cmd(pattern="حذف الذاتية"))
 async def clear_monitored_links(event):
-    """حذف جميع الروابط المراقبة"""
     global monitored_links
     monitored_links.clear()
     await event.edit("**᯽︙ تم حذف جميع الروابط المراقبة**")
 
 @l313l.on(admin_cmd(pattern="حالة الذاتية"))
 async def check_status(event):
-    """عرض حالة المراقبة"""
     global save_self_destruct, monitored_links
     
     status = "مفعل ✅" if save_self_destruct else "معطل ❌"
@@ -87,7 +76,6 @@ async def check_status(event):
 
 @l313l.on(events.NewMessage(incoming=True))
 async def monitor_self_destruct(event):
-    """مراقبة الرسائل الذاتية من الروابط المحددة"""
     global save_self_destruct, monitored_links
     
     if not save_self_destruct or not monitored_links:
@@ -100,7 +88,6 @@ async def monitor_self_destruct(event):
         sender = await event.get_sender()
         sender_username = f"@{sender.username}" if sender.username else None
         
-        # التحقق من أن المرسل من الروابط المراقبة
         if sender_username:
             sender_link = f"https://t.me/{sender.username}"
             if sender_link not in monitored_links:
@@ -108,7 +95,6 @@ async def monitor_self_destruct(event):
         else:
             return
         
-        # حفظ الرسالة
         saved_message = f"**᯽︙ رسالة ذاتية من:** {sender.first_name or 'مجهول'} ({sender_username})\n"
         
         if event.message.text:
