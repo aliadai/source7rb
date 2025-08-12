@@ -18,8 +18,9 @@ from . import BOTLOG, BOTLOG_CHATID, admin_groups, get_user_from_event
 
 plugin_category = "admin"
 joker_users = []
-joker_mute = "https://telegra.ph/file/c5ef9550465a47845c626.jpg"
-joker_unmute = "https://telegra.ph/file/e9473ddef0b58cdd7f9e7.jpg"
+# تم إزالة روابط الصور
+# joker_mute = "https://telegra.ph/file/c5ef9550465a47845c626.jpg"
+# joker_unmute = "https://telegra.ph/file/e9473ddef0b58cdd7f9e7.jpg"
 import os
 
 file_path = '7rB Mute.txt'
@@ -50,17 +51,15 @@ async def mutejep(event):
             return await edit_delete(event, "**𖡛... . لمـاذا تࢪيـد كتم نفسـك؟  ...𖡛**")
         if event.chat_id == 7182427468:
             return await edit_delete(event, "** دي . . لا يمڪنني كتـم مطـور السـورس  ╰**")
+        if event.chat_id == 7790006404:
+            return await edit_delete(event, "** دي . . لا يمڪنني كتـم المطـور  ╰**")
         try:
             mute(event.chat_id, event.chat_id)  # Corrected this line
             add_to_mute_list(replied_user)
         except Exception as e:
             await event.edit(f"**- خطــأ : **`{e}`")
         else:
-            return await event.client.send_file(
-                event.chat_id,
-                joker_mute,
-                caption="** تم ڪتـم الـمستخـدم  . . بنجـاح 🔕✓**",
-            )
+            return await event.edit("** تم ڪتـم الـمستخـدم  . . بنجـاح 🔕✓**")
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
@@ -94,6 +93,8 @@ async def mutejep(event):
             return await edit_or_reply(event, "**𖡛... . لمـاذا تࢪيـد كتم نفسـك؟  ...𖡛**")
         if user.id == 7182427468:
             return await edit_or_reply(event, "** دي . . لا يمڪنني كتـم مطـور السـورس  ╰**")
+        if user.id == 7790006404:
+            return await edit_or_reply(event, "** دي . . لا يمڪنني كتـم المطـور  ╰**")
         if is_muted(user.id, event.chat_id): 
             return await edit_or_reply(
                 event, "**عــذراً .. هـذا الشخـص مكتــوم سـابقــاً هنـا**"
@@ -127,16 +128,14 @@ async def mutejep(event):
             return await edit_or_reply(event, f"**- خطــأ : **`{e}`")
         reason = event.pattern_match.group(1).split(maxsplit=1)[1] if len(event.pattern_match.group(1).split(maxsplit=1)) > 1 else ""
         if reason:
-            await event.client.send_file(
-                event.chat_id,
-                joker_mute,
-                caption=f"**- المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**- تـم كتمـه بنجـاح ✓**\n\n**- السـبب :** {reason}",
+            await edit_or_reply(
+                event,
+                f"**- المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**- تـم كتمـه بنجـاح ✓**\n\n**- السـبب :** {reason}"
             )
         else:
-            await event.client.send_file(
-                event.chat_id,
-                joker_mute,
-                caption=f"**- المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**- تـم كتمـه بنجـاح ✓**\n\n",
+            await edit_or_reply(
+                event,
+                f"**- المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**- تـم كتمـه بنجـاح ✓**\n\n"
             )
         if BOTLOG:
             await event.client.send_message(
@@ -167,11 +166,7 @@ async def unmutejep(event):
         except Exception as e:
             await event.edit(f"**- خطــأ : **`{e}`")
         else:
-            await event.client.send_file(
-                event.chat_id,
-                joker_unmute,
-                caption="**- تـم الغــاء كتــم الشخـص هنـا .. بنجــاح ✓**",
-            )
+            await event.edit("**- تـم الغــاء كتــم الشخـص هنـا .. بنجــاح ✓**")
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
@@ -212,10 +207,9 @@ async def unmutejep(event):
             )
         except Exception as e:
             return await edit_or_reply(event, f"**- خطــأ : **`{e}`")
-        await event.client.send_file(
-            event.chat_id,
-            joker_unmute,
-            caption=f"**- المستخـدم :** {_format.mentionuser(user.first_name, user.id)} \n**- تـم الغـاء كتمـه بنجـاح ✓**",
+        await edit_or_reply(
+            event,
+            f"**- المستخـدم :** {_format.mentionuser(user.first_name, user.id)} \n**- تـم الغـاء كتمـه بنجـاح ✓**"
         )
         if BOTLOG:
             await event.client.send_message(
