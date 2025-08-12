@@ -34,61 +34,63 @@ def detect_platform(url):
     else:
         return 'unknown'
 
+def run_ytdlp_sync(url, ydl_opts):
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        
+        # Check file size before downloading
+        filesize = info.get('filesize') or info.get('filesize_approx') or 0
+        if filesize > 100 * 1024 * 1024:  # 100MB limit
+            raise Exception("الملف كبير جداً (أكثر من 100 ميجابايت)")
+        
+        # Check duration for videos
+        duration = info.get('duration', 0)
+        if duration > 900:  # 15 minutes limit
+            raise Exception("الفيديو طويل جداً (أكثر من 15 دقيقة)")
+        
+        # Now download
+        ydl.download([url])
+        filename = ydl.prepare_filename(info)
+        description = info.get('description', info.get('title', 'محتوى'))
+        if description and len(description) > 100:
+            description = description[:100] + '...'
+        return filename, description or 'محتوى'
+
 async def download_with_ytdlp(url):
     platform = detect_platform(url)
     
-    if platform == 'pinterest':
+    if platform == 'youtube':
+        # Optimized settings for YouTube
+        ydl_opts = {
+            'format': 'best[filesize<100M][ext=mp4]/best[height<=720][ext=mp4]/best[ext=mp4]',
+            'outtmpl': '%(epoch)s.%(ext)s',
+            'no_warnings': True,
+            'quiet': True,
+            'socket_timeout': 25,
+            'fragment_retries': 2,
+            'retries': 2,
+        }
+    elif platform == 'pinterest':
         ydl_opts = {
             'format': 'best',
             'outtmpl': '%(epoch)s.%(ext)s',
             'no_warnings': True,
-        }
-    elif platform == 'youtube':
-        ydl_opts = {
-            'format': 'best[filesize<50M][ext=mp4]/best[height<=720][ext=mp4]/best[ext=mp4]',
-            'outtmpl': '%(epoch)s.%(ext)s',
-            'no_warnings': True,
-            'extractaudio': False,
-            'embed_subs': False,
-            'writesubtitles': False,
-            'writeautomaticsub': False,
-            'socket_timeout': 30,
-            'fragment_retries': 3,
-            'retries': 3,
+            'quiet': True,
         }
     else:
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
             'outtmpl': '%(epoch)s.%(ext)s',
             'no_warnings': True,
-            'extractaudio': False,
-            'embed_subs': False,
-            'writesubtitles': False,
-            'writeautomaticsub': False,
-            'socket_timeout': 30,
+            'quiet': True,
+            'socket_timeout': 20,
         }
     
+    # Run in thread pool to make it truly async
+    loop = asyncio.get_event_loop()
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            
-            # Check file size before downloading
-            filesize = info.get('filesize') or info.get('filesize_approx') or 0
-            if filesize > 100 * 1024 * 1024:  # 100MB limit
-                raise Exception("الملف كبير جداً (أكثر من 100 ميجابايت)")
-            
-            # Check duration for videos
-            duration = info.get('duration', 0)
-            if duration > 600:  # 10 minutes limit
-                raise Exception("الفيديو طويل جداً (أكثر من 10 دقائق)")
-            
-            # Now download
-            ydl.download([url])
-            filename = ydl.prepare_filename(info)
-            description = info.get('description', info.get('title', 'محتوى'))
-            if description and len(description) > 200:
-                description = description[:200] + '...'
-            return filename, description or 'محتوى'
+        filename, description = await loop.run_in_executor(None, run_ytdlp_sync, url, ydl_opts)
+        return filename, description
     except Exception as e:
         raise e
 
@@ -102,7 +104,8 @@ async def universal_dl(event):
     # Delete original message
     await event.message.delete()
     
-    # Send processing message
+    # Send processing message  
+    platform = detect_platform(link)
     a = await l313l.send_message(event.chat_id, '⏳ جاري تحميل الفيديو...')
     
     try:
@@ -119,11 +122,9 @@ async def universal_dl(event):
         
         try:
             # Set timeout for the entire operation
-            download_task = asyncio.create_task(download_with_ytdlp(link))
             try:
-                filename, title = await asyncio.wait_for(download_task, timeout=120.0)  # 2 minutes timeout
+                filename, title = await asyncio.wait_for(download_with_ytdlp(link), timeout=120.0)  # 2 minutes timeout
             except asyncio.TimeoutError:
-                download_task.cancel()
                 raise Exception("انتهت مهلة التحميل (أكثر من دقيقتين)")
             
             # Check if file exists and get size
@@ -192,5 +193,9 @@ async def universal_dl(event):
             await a.edit(error_msg)
         elif "انتهت مهلة" in error_msg:
             await a.edit("انتهت مهلة التحميل، الملف كبير جداً")
+        elif "rate-limited" in error_msg.lower() or "try again later" in error_msg.lower():
+            await a.edit("يوتيوب يحد من التحميل حالياً، جرب بعد قليل أو استخدم رابط آخر")
+        elif "video unavailable" in error_msg.lower():
+            await a.edit("الفيديو غير متاح أو محذوف من يوتيوب")
         else:
-            await a.edit(f"حدث خطأ في التحميل\n{error_msg}")
+            await a.edit("حدث خطأ في التحميل، جرب رابط آخر")
