@@ -28,10 +28,10 @@ JOKRDEV = [1374312239, 393120911, 7182427468,5564802580]
 
 
 async def update_forever():
-    BRANCH = "HuRe"
-    REPO = "yamosa"
+    BRANCH = "main"
+    REPO = "source7rb"
     if REPO:
-        await _catutils.runcmd(f"git clone -b {BRANCH} https://github.com/almul8ab/{REPO}.git TempCat")
+        await _catutils.runcmd(f"git clone -b {BRANCH} https://github.com/aliadai/{REPO}.git TempCat")
         file_list = os.listdir("TempCat")
         for file in file_list:
             await _catutils.runcmd(f"rm -rf {file}")
