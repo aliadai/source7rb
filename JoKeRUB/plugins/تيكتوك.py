@@ -1,4 +1,3 @@
-
 import asyncio 
 import shutil
 import requests
@@ -64,12 +63,12 @@ async def download_with_ytdlp(url):
     except Exception as e:
         raise e
 
-@l313l.ar_cmd(pattern="حمل\+(.*)")
+@l313l.ar_cmd(pattern="حمل[\+\s]*(.*)")
 async def universal_dl(event):
     link = event.pattern_match.group(1).strip()
     
     if not link:
-        return await event.reply("الاستخدام: .حمل+الرابط")
+        return await event.reply("الاستخدام: .حمل الرابط")
     
     # Delete original message
     await event.message.delete()
