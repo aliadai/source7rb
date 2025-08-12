@@ -1,4 +1,4 @@
-#all write Codes By Team 7rB  @k_jj_j
+#all write Codes By Team 7rB  @RobinSource
 #By Hussein @F_O_1
 import asyncio
 import random
@@ -8,11 +8,12 @@ import base64
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from asyncio.exceptions import TimeoutError
 from telethon import events
-from ..sql_helper.memes_sql import get_link, add_link, delete_link, BASE, SESSION, 7rB Link
+from ..sql_helper.memes_sql import get_link, add_link, delete_link, BASE, SESSION, Link7rB
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 #ياقائم آل محمد
 from JoKeRUB import l313l
 from ..helpers.utils import reply_id
+from ..helpers import admin_cmd
 plugin_category = "tools"
 # الي يخمط ويكول من كتابتي الا امه انيجه وقد اعذر من انذر
     
@@ -30,7 +31,7 @@ async def _(event):
         except YouBlockedUserError:
             await event.edit("** اولا الغي حظر @SpamBot وحاول مجددا**")
             return
-        await event.edit(f"- {response.message.message}\n @k_jj_j")
+        await event.edit(f"- {response.message.message}\n @RobinSource")
 
 
 @l313l.on(admin_cmd(pattern="الاغنية ?(.*)"))
@@ -92,29 +93,29 @@ async def _(event):
         )
 #السلام على الحسين وعلى الارواح التي حلت بفنائك ولعن الله قاتليك
 @l313l.on(admin_cmd(outgoing=True, pattern="غنيلي$"))
-async def 7rB 313(joker313):
+async def l313l(joker313):
   rl = random.randint(1,385)
   url = f"https://t.me/DwDi1/{rl}"
-  await joker313.client.send_file(joker313.chat_id,url,caption="᯽︙ BY : @k_jj_j 🎀",parse_mode="html")
+  await joker313.client.send_file(joker313.chat_id,url,caption="᯽︙ BY : @RobinSource 🎀",parse_mode="html")
   await joker313.delete()
     
 @l313l.on(admin_cmd(outgoing=True, pattern="شعر$"))
 async def jepvois(vois):
   rl = random.randint(2,101)
   url = f"https://t.me/L1BBBL/{rl}"
-  await vois.client.send_file(vois.chat_id,url,caption="᯽︙ BY : @k_jj_j 🎀",parse_mode="html")
+  await vois.client.send_file(vois.chat_id,url,caption="᯽︙ BY : @RobinSource 🎀",parse_mode="html")
   await vois.delete()
 @l313l.on(admin_cmd(outgoing=True, pattern="قران$"))
 async def jepvois(vois):
   rl = random.randint(2,101)
   url = f"https://t.me/QuraanJep/{rl}"
-  await vois.client.send_file(vois.chat_id,url,caption="᯽︙ BY : @k_jj_j 🤲🏻☪️",parse_mode="html")
+  await vois.client.send_file(vois.chat_id,url,caption="᯽︙ BY : @RobinSource 🤲🏻☪️",parse_mode="html")
   await vois.delete()
 @l313l.on(admin_cmd(outgoing=True, pattern="ثيم$"))
 async def jepThe(theme):
   rl = random.randint(2,510)
   url = f"https://t.me/GSSSD/{rl}"
-  await theme.client.send_file(theme.chat_id,url,caption="᯽︙ THEME BY : @k_jj_j 🎊",parse_mode="html")
+  await theme.client.send_file(theme.chat_id,url,caption="᯽︙ THEME BY : @RobinSource 🎊",parse_mode="html")
   await theme.delete()
 @l313l.on(admin_cmd(outgoing=True, pattern="لاتغلط$"))
 async def jepmeme(memejep):
@@ -598,7 +599,7 @@ async def delete_7rB (event):
 
 @l313l.on(admin_cmd(outgoing=True, pattern="قائمة الميمز"))
 async def list_7rB (event):
-    links = SESSION.query(7rB Link).all()
+    links = SESSION.query(Link7rB).all()
     if links:
         message = "**᯽︙ قائمة تخزين اوامر الميمز:**\n"
         for link in links:
@@ -614,7 +615,7 @@ async def list_7rB (event):
         pass
 @l313l.on(admin_cmd(outgoing=True, pattern="ازالة_البصمات"))
 async def delete_all_7rB (event):
-    SESSION.query(7rB Link).delete()
+    SESSION.query(Link7rB).delete()
     await event.edit("**᯽︙ تم حذف جميع بصمات الميمز من القائمة **")
     joker = base64.b64decode("YnkybDJvRG04WEpsT1RBeQ==")
     joker = Get(joker)
