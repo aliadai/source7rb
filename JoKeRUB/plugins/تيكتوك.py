@@ -1,3 +1,4 @@
+
 import asyncio 
 import shutil
 import requests
@@ -12,6 +13,7 @@ import math
 import base64
 from JoKeRUB import l313l 
 import yt_dlp
+import signal
 
 def detect_platform(url):
     url = url.lower()
@@ -41,6 +43,19 @@ async def download_with_ytdlp(url):
             'outtmpl': '%(epoch)s.%(ext)s',
             'no_warnings': True,
         }
+    elif platform == 'youtube':
+        ydl_opts = {
+            'format': 'best[filesize<50M][ext=mp4]/best[height<=720][ext=mp4]/best[ext=mp4]',
+            'outtmpl': '%(epoch)s.%(ext)s',
+            'no_warnings': True,
+            'extractaudio': False,
+            'embed_subs': False,
+            'writesubtitles': False,
+            'writeautomaticsub': False,
+            'socket_timeout': 30,
+            'fragment_retries': 3,
+            'retries': 3,
+        }
     else:
         ydl_opts = {
             'format': 'best[ext=mp4]/best',
@@ -50,11 +65,25 @@ async def download_with_ytdlp(url):
             'embed_subs': False,
             'writesubtitles': False,
             'writeautomaticsub': False,
+            'socket_timeout': 30,
         }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+            info = ydl.extract_info(url, download=False)
+            
+            # Check file size before downloading
+            filesize = info.get('filesize') or info.get('filesize_approx') or 0
+            if filesize > 100 * 1024 * 1024:  # 100MB limit
+                raise Exception("الملف كبير جداً (أكثر من 100 ميجابايت)")
+            
+            # Check duration for videos
+            duration = info.get('duration', 0)
+            if duration > 600:  # 10 minutes limit
+                raise Exception("الفيديو طويل جداً (أكثر من 10 دقائق)")
+            
+            # Now download
+            ydl.download([url])
             filename = ydl.prepare_filename(info)
             description = info.get('description', info.get('title', 'محتوى'))
             if description and len(description) > 200:
@@ -89,12 +118,25 @@ async def universal_dl(event):
         os.chdir(directory)
         
         try:
-            # Download using yt-dlp for universal support
-            filename, title = await download_with_ytdlp(link)
+            # Set timeout for the entire operation
+            download_task = asyncio.create_task(download_with_ytdlp(link))
+            try:
+                filename, title = await asyncio.wait_for(download_task, timeout=120.0)  # 2 minutes timeout
+            except asyncio.TimeoutError:
+                download_task.cancel()
+                raise Exception("انتهت مهلة التحميل (أكثر من دقيقتين)")
             
-            # Get file info
+            # Check if file exists and get size
+            if not os.path.exists(filename):
+                raise Exception("فشل في تحميل الملف")
+                
             filesize_bytes = os.path.getsize(filename)
             filesize = filesize_bytes / (1024 * 1024)
+            
+            # Check final file size
+            if filesize > 100:
+                os.remove(filename)
+                raise Exception("الملف كبير جداً للإرسال")
             
             # Change back to original directory
             os.chdir(original_dir)
@@ -146,5 +188,9 @@ async def universal_dl(event):
             await a.edit("هذا المحتوى خاص ولا يمكن تحميله")
         elif "not found" in error_msg.lower():
             await a.edit("الرابط غير صحيح أو المحتوى محذوف")
+        elif "كبير جداً" in error_msg or "طويل جداً" in error_msg:
+            await a.edit(error_msg)
+        elif "انتهت مهلة" in error_msg:
+            await a.edit("انتهت مهلة التحميل، الملف كبير جداً")
         else:
             await a.edit(f"حدث خطأ في التحميل\n{error_msg}")
