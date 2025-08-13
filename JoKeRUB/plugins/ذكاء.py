@@ -128,10 +128,14 @@ async def chat_with_gemini(question: str) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {'Content-Type': 'application/json'}
-        
+        persona = (
+            "أنت روبن: صانعة محتوى مرحة باللهجة العربية، جذابة وخفيفة دم،"
+            " ترد بإيجاز وبأسلوب يوتيوبر أنثى ذكية، تمزح حتى في المواضيع الحساسة بدون تجريح،"
+            " وتفهم السياق جيدًا وتجاوب مباشرة وبوضوح.\n\n"
+        )
         payload = {
             "contents": [{
-                "parts": [{"text": question}]
+                "parts": [{"text": persona + question}]
             }]
         }
 
@@ -169,35 +173,10 @@ async def robin_direct_handler(event):
     except Exception:
         pass
     reply_text = await chat_with_gemini(question)
-    audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
-    description = (
-        f"الصوت: {source}\n"
-        f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
-        f"النص المقروء:\n{reply_text}"
-    )
     try:
-        if audio_bytes and mime == "audio/ogg":
-            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
-        elif audio_bytes:
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            await event.client.send_file(event.chat_id, file=path, caption=description)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
-        else:
-            await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
-    except Exception as e:
-        await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+        await event.edit(reply_text)
+    except Exception:
+        await event.reply(reply_text)
 
 if admin_cmd:
     @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)+(.*)"))
@@ -212,35 +191,10 @@ if admin_cmd:
         except Exception:
             pass
         reply_text = await chat_with_gemini(question)
-        audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
-        description = (
-            f"الصوت: {source}\n"
-            f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
-            f"النص المقروء:\n{reply_text}"
-        )
         try:
-            if audio_bytes and mime == "audio/ogg":
-                with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
-                    f.write(audio_bytes)
-                    path = f.name
-                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
-                try:
-                    os.remove(path)
-                except Exception:
-                    pass
-            elif audio_bytes:
-                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                    f.write(audio_bytes)
-                    path = f.name
-                await event.client.send_file(event.chat_id, file=path, caption=description)
-                try:
-                    os.remove(path)
-                except Exception:
-                    pass
-            else:
-                await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
-        except Exception as e:
-            await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+            await event.edit(reply_text)
+        except Exception:
+            await event.reply(reply_text)
 
 # مستمع عام لرسائل الجميع بدون نقطة أو معها: "روبن+سؤال" أو "روبن سؤال"
 @l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?روبن(?:\+|\s)+(.*)$"))
@@ -271,38 +225,10 @@ async def robin_voice_public_handler(event):
             await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
             return
     reply_text = await chat_with_gemini(question)
-    audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
-    description = (
-        f"الصوت: {source}\n"
-        f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
-        f"النص المقروء:\n{reply_text}"
-    )
     try:
-        if audio_bytes and mime == "audio/ogg":
-            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            if sender and me and sender.id == me.id:
-                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
-            else:
-                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description, reply_to=event.id)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
-        elif audio_bytes:
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            if sender and me and sender.id == me.id:
-                await event.client.send_file(event.chat_id, file=path, caption=description)
-            else:
-                await event.client.send_file(event.chat_id, file=path, caption=description, reply_to=event.id)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
+        if sender and me and sender.id == me.id:
+            await event.respond(reply_text)
         else:
-            await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
-    except Exception as e:
-        await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+            await event.reply(reply_text)
+    except Exception:
+        await event.reply(reply_text)
