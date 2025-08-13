@@ -27,55 +27,42 @@ ELEVENLABS_API_KEY = os.getenv(
 )
 ELEVENLABS_VOICE_ID = os.getenv(
     "ELEVENLABS_VOICE_ID",
-    "YExhVa4bZONzeingloMX"
+    "y3H6zY6KvCH2pEuQjmv8"
 )
 ELEVENLABS_OUTPUT_FORMAT = os.getenv("ELEVENLABS_OUTPUT_FORMAT", "opus_32000")
-ELEVENLABS_FALLBACK_VOICE_IDS = [
-    "21m00Tcm4TlvDq8ikWAM",
-    "EXAVITQu4vr4xnSDxMaL",
-]
+ 
 
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
     if not ELEVENLABS_API_KEY:
         return None
     try:
-        tried = []
-        voice_ids = []
-        if ELEVENLABS_VOICE_ID:
-            voice_ids.append(ELEVENLABS_VOICE_ID)
-        for vid in ELEVENLABS_FALLBACK_VOICE_IDS:
-            if vid not in voice_ids:
-                voice_ids.append(vid)
         headers = {
             "xi-api-key": ELEVENLABS_API_KEY,
             "accept": "audio/ogg",
             "Content-Type": "application/json",
         }
-        for vid in voice_ids:
-            url = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
-            payload = {
-                "text": text,
-                "model_id": "eleven_multilingual_v2",
-                "voice_settings": {
-                    "stability": 0.25,
-                    "similarity_boost": 0.95,
-                    "style": 0.6,
-                    "use_speaker_boost": True
-                },
-                "output_format": ELEVENLABS_OUTPUT_FORMAT
-            }
-            r = requests.post(url, json=payload, headers=headers, timeout=60)
-            if r.status_code == 200 and r.content:
-                try:
-                    os.environ["__EL_USED_VOICE_ID__"] = vid
-                except Exception:
-                    pass
-                return r.content
-            tried.append((vid, r.status_code, r.text[:200] if hasattr(r, 'text') else ''))
+        vid = ELEVENLABS_VOICE_ID
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
+        payload = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {
+                "stability": 0.25,
+                "similarity_boost": 0.95,
+                "style": 0.6,
+                "use_speaker_boost": True
+            },
+            "output_format": ELEVENLABS_OUTPUT_FORMAT
+        }
+        r = requests.post(url, json=payload, headers=headers, timeout=60)
+        if r.status_code == 200 and r.content:
+            try:
+                os.environ["__EL_USED_VOICE_ID__"] = vid
+            except Exception:
+                pass
+            return r.content
         try:
-            print("ElevenLabs TTS attempts failed:")
-            for vid, st, body in tried:
-                print(f"  voice_id={vid} status={st} body={body}")
+            print(f"ElevenLabs TTS failed: voice_id={vid} status={r.status_code}, body={r.text[:300]}")
         except Exception:
             pass
     except Exception:
@@ -167,13 +154,50 @@ async def chat_with_gemini(question: str) -> str:
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
 
-@l313l.on(events.NewMessage(pattern=r"^\.ذكاء (.+)"))
-async def ai_handler(event):
-    question = event.pattern_match.group(1)
-    await event.reply("...")
-
-    response = await chat_with_gemini(question)
-    await event.reply(response)
+@l313l.on(events.NewMessage(pattern=r"^\.روبن(?:\+|\s)+(.*)$"))
+async def robin_direct_handler(event):
+    g = event.pattern_match.group(1) if event.pattern_match else ""
+    question = (g or "").strip()
+    if not question:
+        try:
+            await event.edit("اكتب سؤالك بعد روبن مثل: .روبن+شنو معنى الحياة؟ أو .روبن شنو معنى الحياة؟")
+        except Exception:
+            await event.reply("اكتب سؤالك بعد روبن مثل: .روبن+شنو معنى الحياة؟ أو .روبن شنو معنى الحياة؟")
+        return
+    try:
+        await event.edit("ثواني وارد عليك…")
+    except Exception:
+        pass
+    reply_text = await chat_with_gemini(question)
+    audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
+    description = (
+        f"الصوت: {source}\n"
+        f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
+        f"النص المقروء:\n{reply_text}"
+    )
+    try:
+        if audio_bytes and mime == "audio/ogg":
+            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+                f.write(audio_bytes)
+                path = f.name
+            await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        elif audio_bytes:
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                f.write(audio_bytes)
+                path = f.name
+            await event.client.send_file(event.chat_id, file=path, caption=description)
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        else:
+            await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
+    except Exception as e:
+        await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
 
 if admin_cmd:
     @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)+(.*)"))
