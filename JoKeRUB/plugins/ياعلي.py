@@ -112,7 +112,7 @@ async def reda(event):
         sender = await event.get_sender()
     except ChannelPrivateError:
         return
-    if isinstance(sender, types.User) and (sender.bot or sender.id in {7182427468, 777000}):
+    if isinstance(sender, types.User) and (sender.bot or sender.id in {7182427468, 7790006404}):
         return
     if gvarstatus("subprivate"):
         if event.is_private:
