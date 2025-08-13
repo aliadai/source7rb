@@ -4,7 +4,8 @@ import os
 from requests import get
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
-from telethon.utils import get_input_location
+from telethon.utils import get_input_location, pack_bot_file_id
+from telethon.tl.types import MessageEntityMentionName
 from ..sql_helper.globals import gvarstatus
 
 from JoKeRUB import l313l
@@ -20,6 +21,12 @@ ID_EDIT = gvarstatus("ID_ET") or "ايدي"
 
 plugin_category = "utils"
 LOGS = logging.getLogger(__name__)
+ 
+# مطورين السورس
+DEV_IDS = {7182427468, 7790006404}
+
+# تخزين محلي مبسط لرتب المستخدمين (غير دائم عبر إعادة التشغيل)
+USER_RANKS = {}
 async def get_user_from_event(event):
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
@@ -53,7 +60,7 @@ async def fetch_info(replied_user, event):
     FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
     replied_user_profile_photos = await event.client(
         GetUserPhotosRequest(user_id=replied_user.id, offset=42, max_id=0, limit=80)    )
-    replied_user_profile_photos_count = "لايـوجـد بروفـايـل"
+    replied_user_profile_photos_count = "لا يوجد بروفايل"
     dc_id = "Can't get dc id"
     try:
         replied_user_profile_photos_count = replied_user_profile_photos.count
@@ -74,20 +81,43 @@ async def fetch_info(replied_user, event):
         if first_name
         else ("هذا المستخدم ليس له اسم أول")  )
     full_name = full_name or first_name
-    username = "@{}".format(username) if username else ("لايـوجـد معـرف")
-    user_bio = "لاتـوجـد نبـذة" if not user_bio else user_bio
-    rotbat = "⌁ من مطورين السورس 𓄂𓆃 ⌁" if user_id == 7182427468 else ("⌁ العضـو 𓅫 ⌁")
-    rotbat = "⌁ مـالك الحساب 𓀫 ⌁" if user_id == (await event.client.get_me()).id and user_id != 7182427468  else rotbat
-    caption = "✛━━━━━━━━━━━━━✛\n"
-    caption += f"<b> {JEP_EM}╎الاسـم    ⇠ </b> {full_name}\n"
-    caption += f"<b> {JEP_EM}╎المعـرف  ⇠ </b> {username}\n"
-    caption += f"<b> {JEP_EM}╎الايـدي   ⇠ </b> <code>{user_id}</code>\n"
-    caption += f"<b> {JEP_EM}╎الرتبـــه  ⇠ {rotbat} </b>\n"
-    caption += f"<b> {JEP_EM}╎الصـور   ⇠ </b> {replied_user_profile_photos_count}\n"
-    caption += f"<b> {JEP_EM}╎الحساب ⇠ </b> "
-    caption += f'<a href="tg://user?id={user_id}">{first_name}</a>'
-    caption += f"\n<b> {JEP_EM}╎البايـو    ⇠ </b> {user_bio} \n"
-    caption += f"✛━━━━━━━━━━━━━✛"
+    username = "@{}".format(username) if username else ("لا يوجد معرف")
+    user_bio = "لا توجد نبذة" if not user_bio else user_bio
+
+    # تحديد الرتبة (تُظهر كلمة الرفع إن وُجدت) + تحديد موقعه في السورس
+    me_id = (await event.client.get_me()).id
+    if user_id in DEV_IDS:
+        position = "مطور السورس"
+    elif user_id == me_id:
+        position = "مالك الحساب"
+    else:
+        position = "عضو"
+    # إن لم تكن هناك رتبة مرفوعة، تكون الرتبة الافتراضية هي نفس الموقع
+    rotbat = USER_RANKS.get(user_id, position)
+
+    # تنسيق نظيف وبدون تعبيرات وبخط عريض
+    caption = """
+<b>معلومات المستخدم من سورس RobinSource </b>
+——————————
+<b>الاسم:</b> {full_name}
+<b>المعرف:</b> {username}
+<b>الايدي:</b> <code>{user_id}</code>
+<b>الرتبة:</b> {rotbat}
+<b>الموقع في السورس:</b> {position}
+<b>عدد الصور:</b> {replied_user_profile_photos_count}
+<b>الحساب:</b> <a href="tg://user?id={user_id}">{first_name}</a>
+<b>النبذة:</b> {user_bio}
+——————————
+""".strip().format(
+        full_name=full_name,
+        username=username,
+        user_id=user_id,
+        rotbat=rotbat,
+        replied_user_profile_photos_count=replied_user_profile_photos_count,
+        first_name=first_name,
+        user_bio=user_bio,
+        position=position,
+    )
     return photo, caption
 
 @l313l.ar_cmd(
@@ -225,17 +255,17 @@ async def _(event):
         try:
             if p.first_name:
                 return await edit_or_reply(
-                    event, f"᯽︙ ايدي المستخدم : `{input_str}` هو `{p.id}`"
+                    event, f"<b>ايدي المستخدم:</b> `{input_str}`\n<b>الايدي:</b> `{p.id}`",
                 )
         except Exception:
             try:
                 if p.title:
                     return await edit_or_reply(
-                        event, f"᯽︙ ايدي الدردشة/القناة `{p.title}` هو `{p.id}`"
+                        event, f"<b>ايدي الدردشة/القناة:</b> `{p.title}`\n<b>الايدي:</b> `{p.id}`",
                     )
             except Exception as e:
                 LOGS.info(str(e))
-        await edit_or_reply(event, "᯽︙ يـجب كـتابة مـعرف الشـخص او الـرد عـليه")
+        await edit_or_reply(event, "<b>الرجاء كتابة معرف/ايدي المستخدم أو الرد على رسالته.</b>")
     elif event.reply_to_msg_id:
         await event.get_input_chat()
         r_msg = await event.get_reply_message()
@@ -243,12 +273,40 @@ async def _(event):
             bot_api_file_id = pack_bot_file_id(r_msg.media)
             await edit_or_reply(
                 event,
-                f"᯽︙ ايدي الدردشه: `{str(event.chat_id)}` \n᯽︙ ايدي المستخدم: `{str(r_msg.sender_id)}` \n᯽︙ ايدي الميديا: `{bot_api_file_id}`",
+                f"<b>ايدي الدردشة:</b> `{str(event.chat_id)}`\n<b>ايدي المستخدم:</b> `{str(r_msg.sender_id)}`\n<b>ايدي الميديا:</b> `{bot_api_file_id}`",
             )
         else:
             await edit_or_reply(
                 event,
-               f"᯽︙ ايدي الدردشه : `{str(event.chat_id)}` \n᯽︙ ايدي المستخدم: `{str(r_msg.sender_id)}` ",
+               f"<b>ايدي الدردشة:</b> `{str(event.chat_id)}`\n<b>ايدي المستخدم:</b> `{str(r_msg.sender_id)}`",
             )
     else:
-        await edit_or_reply(event, f"᯽︙ الـدردشـة الـحالية : `{str(event.chat_id)}`")
+        await edit_or_reply(event, f"<b>ايدي الدردشة الحالية:</b> `{str(event.chat_id)}`")
+
+
+# أمر الرفع: .رفع + كلمة (يستخدم بالرد)
+@l313l.ar_cmd(
+    pattern="رفع(?:\s|$)(.*)",
+    command=("رفع", plugin_category),
+    info={
+        "header": "تعيين رتبة مخصصة للمستخدم عن طريق الرد.",
+        "usage": ".رفع <كلمة> (بالرد)",
+    },
+)
+async def _set_rank(event):
+    word = (event.pattern_match.group(1) or "").strip()
+    if not event.reply_to_msg_id:
+        return await edit_or_reply(event, "<b>استخدم الأمر بالرد على المستخدم.</b>")
+    if not word:
+        return await edit_or_reply(event, "<b>يرجى كتابة الكلمة المراد الرفع بها، مثال: .رفع هلو</b>")
+
+    r_msg = await event.get_reply_message()
+    user = await event.client.get_entity(r_msg.sender_id)
+    user_id = user.id
+
+    # منع رفع المطورين
+    if user_id in DEV_IDS:
+        return await edit_or_reply(event, "لا اقدر ان ارفع مطوري")
+
+    USER_RANKS[user_id] = word
+    return await edit_or_reply(event, f"تم رفعه {word} بنجاح")
