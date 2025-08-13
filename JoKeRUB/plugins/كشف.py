@@ -87,7 +87,7 @@ async def fetch_info(replied_user, event):
     # تحديد الرتبة (تُظهر كلمة الرفع إن وُجدت) + تحديد موقعه في السورس
     me_id = (await event.client.get_me()).id
     if user_id in DEV_IDS:
-        position = "مطور السورس"
+        position = "المطور الاساسي"
     elif user_id == me_id:
         position = "مالك الحساب"
     else:
