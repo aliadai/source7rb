@@ -87,9 +87,9 @@ async def fetch_info(replied_user, event):
     # تحديد الرتبة (تُظهر كلمة الرفع إن وُجدت) + تحديد موقعه في السورس
     me_id = (await event.client.get_me()).id
     if user_id in DEV_IDS:
-        position = "المطور الاساسي"
+        position = "مطَوّر السوَرس"
     elif user_id == me_id:
-        position = "مالك الحساب"
+        position = "مالِك الحساب"
     else:
         position = "عضو"
     # إن لم تكن هناك رتبة مرفوعة، تكون الرتبة الافتراضية هي نفس الموقع
@@ -102,8 +102,7 @@ async def fetch_info(replied_user, event):
 <b>الاسم:</b> <a href="tg://user?id={user_id}">{first_name}
 <b>المعرف:</b> {username}
 <b>الايدي:</b> <code>{user_id}</code>
-<b>الرتبة:</b> {rotbat}
-<b>عدد صور حسابه:</b> {replied_user_profile_photos_count}
+<b>الرتبَه:</b> {rotbat}
 <b>النبذة:</b> {user_bio}
 ——————————
 """.strip().format(
