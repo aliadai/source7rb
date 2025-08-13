@@ -40,11 +40,13 @@ async def amireallyalive(event):
     EMOJI = gvarstatus("ALIVE_EMOJI") or "  - "
     CUSTOM_ALIVE_TEXT = gvarstatus("ALIVE_TEXT")
     
-    cat_caption = f"مطورين سورس Robin \n"
-    cat_caption += f"✛━━━━━━━━━━━━━✛\n"
-    cat_caption += f"- المطور  : @is7rB\n"
-    cat_caption += f"- المطور  : @this7rB\n"
-    cat_caption += f"✛━━━━━━━━━━━━━✛\n"
+    cat_caption = f"**🔰 مطورين سورس Robin 🔰**\n\n"
+    cat_caption += f"━━━━━━━━━━━━━━━━━━━━━\n"
+    cat_caption += f"👨‍💻 **المطور الأول** : @is7rB\n"
+    cat_caption += f"👨‍💻 **المطور الثاني** : @this7rB\n"
+    cat_caption += f"━━━━━━━━━━━━━━━━━━━━━\n"
+    cat_caption += f"📢 **قناة السورس** : @RobinSource\n"
+    cat_caption += f"━━━━━━━━━━━━━━━━━━━━━"
     await event.reply(cat_caption, reply_to=reply_to_id)
 
 @l313l.tgbot.on(CallbackQuery(data=re.compile(b"stats")))
@@ -60,9 +62,10 @@ async def reda(event):
        reply_msg = await event.get_reply_message()
        owner_id = reply_msg.from_id.user_id
        if owner_id == l313l.uid:
-           if event.message.message == "حظر من السورس":
+           if event.message.message == "بلوك من السورس":
                await event.reply("**حاظر مطوري ، لقد تم حظره من استخدام السورس**")
                addgvar("blockedfrom", "yes")
-           elif event.message.message == "الغاء الحظر من السورس":
-               await event.reply("**حاظر مطوري، لقد الغيت الحظر**")
+           elif event.message.message == "الغاء البلوك من السورس":
+               await event.reply("**حاظر مطوري، لقد الغيت البلوك**")
                delgvar("blockedfrom")
+                
