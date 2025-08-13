@@ -12,8 +12,8 @@ import io
 import tempfile
 import asyncio
 from typing import Optional
+import re
 
-# TTS dependencies (optional)
 try:
     from gtts import gTTS
 except Exception:
@@ -23,19 +23,14 @@ try:
 except Exception:
     AudioSegment = None
 
-# مفتاح ElevenLabs من المتغيرات البيئية (اختياري)
-# تم ضبط قيم افتراضية مباشرة حسب طلبك.
 ELEVENLABS_API_KEY = os.getenv(
     "ELEVENLABS_API_KEY",
     "sk_53ba6f21a7ca94293d6e64ece297988f8cc187642e57aa6e"
 )
-# يمكنك تحديد صوت أنثوي مميز عبر معرف الصوت من حسابك في ElevenLabs
-# إن لم تحدده سنستخدم هذا المعرف الذي زودتني به
 ELEVENLABS_VOICE_ID = os.getenv(
     "ELEVENLABS_VOICE_ID",
     "YExhVa4bZONzeingloMX"
 )
-# صيغة الإخراج مباشرة كـ OGG/Opus ليرسل كـ voice note بدون تحويل
 ELEVENLABS_OUTPUT_FORMAT = os.getenv("ELEVENLABS_OUTPUT_FORMAT", "opus_32000")
 
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
@@ -53,9 +48,9 @@ def tts_with_elevenlabs(text: str) -> Optional[bytes]:
             "text": text,
             "model_id": "eleven_multilingual_v2",
             "voice_settings": {
-                "stability": 0.25,          # أقل للاسترسال والتعبير
-                "similarity_boost": 0.9,    # أعلى لتقارب نبرة الصوت
-                "style": 0.55,               # لمسة أسلوبية خفيفة
+                "stability": 0.25,
+                "similarity_boost": 0.9,
+                "style": 0.55,
                 "use_speaker_boost": True
             },
             "output_format": ELEVENLABS_OUTPUT_FORMAT
@@ -103,12 +98,10 @@ def mp3_bytes_to_ogg_opus(mp3_bytes: bytes) -> Optional[bytes]:
 
 async def synthesize_voice_bytes(text: str) -> (Optional[bytes], str):
     """يرجع (bytes, mime). يفضّل ElevenLabs بإخراج OGG/Opus واضح، ثم gTTS مع تحويل إن أمكن."""
-    # جرّب ElevenLabs أولاً (يُنتج OGG/Opus مباشرة)
     el_bytes = tts_with_elevenlabs(text)
     if el_bytes:
         return el_bytes, "audio/ogg"
 
-    # بديل gTTS -> mp3 ثم نحاول التحويل إلى OGG/Opus
     mp3_bytes = tts_with_gtts(text)
     if not mp3_bytes:
         return None, ""
@@ -117,16 +110,13 @@ async def synthesize_voice_bytes(text: str) -> (Optional[bytes], str):
         return ogg_bytes, "audio/ogg"
     return mp3_bytes, "audio/mpeg"
 
-# مفتاح API الخاص بـ Gemini
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
-# ردود افتراضية في حال حدوث خطأ
 UNKNOWN_RESPONSES = [
     "❌ لم أفهم سؤالك، يرجى التوضيح.",
     "❌ هناك مشكلة في الاتصال، حاول مرة أخرى لاحقًا."
 ]
 
-# دالة للتواصل مع Gemini API
 async def chat_with_gemini(question: str) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -156,27 +146,51 @@ async def chat_with_gemini(question: str) -> str:
     except requests.exceptions.RequestException:
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
-# حدث يستمع للأمر ".ذكاء + السؤال"
+def _normalize_trigger_text(s: str) -> str:
+    if not s:
+        return ""
+    # إزالة محارف التحكم بالاتجاه وبعض المحارف غير المرغوبة
+    s = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", s)
+    s = s.strip()
+    # إزالة علامات ترقيم متكررة في البداية (نقاط، فواصل، شرطات، إلخ)
+    s = re.sub(r"^[\s\.\-_/،!؟~]+", "", s)
+    # توحيد المسافات المتعددة
+    s = re.sub(r"\s+", " ", s)
+    return s
+
 @l313l.on(events.NewMessage(pattern=r"^\.ذكاء (.+)"))
 async def ai_handler(event):
-    question = event.pattern_match.group(1)  # استخراج السؤال بعد ".ذكاء"
+    question = event.pattern_match.group(1)
     await event.reply("...")
 
-    response = await chat_with_gemini(question)  # الحصول على الرد من الذكاء الاصطناعي
-    await event.reply(response)  # إرسال الرد للمستخدم
+    response = await chat_with_gemini(question)
+    await event.reply(response)
 
-# مستمع لرسائل تبدأ بـ ".روبن" أو "روبن" مع + أو مسافة لأي مستخدم في الخاص أو المجموعات
-@l313l.on(events.NewMessage(pattern=r"^\.?روبن(?:\+|\s)+(.*)$", incoming=True))
+@l313l.on(events.NewMessage(incoming=True))
 async def robin_voice_handler(event):
-    question = (event.pattern_match.group(1) or "").strip()
+    text = (event.raw_text or "").strip()
+    if not text:
+        return
+
+    t = _normalize_trigger_text(text)
+
+    question = ""
+    if t.startswith("روبن+"):
+        question = t.split("+", 1)[1].strip()
+    elif t.startswith("روبن "):
+        question = t[len("روبن "):].strip()
+    elif t == "روبن":
+        await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+        return
+    else:
+        return
+
     if not question:
         await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
         return
 
-    # 1) الحصول على رد نصي من الذكاء (يمكنه المزاح والمواضيع الحساسة حسب الطلب)
     reply_text = await chat_with_gemini(question)
 
-    # 2) توليد الصوت
     audio_bytes, mime = await synthesize_voice_bytes(reply_text)
     description = (
         f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
@@ -185,7 +199,6 @@ async def robin_voice_handler(event):
 
     try:
         if audio_bytes and mime == "audio/ogg":
-            # أرسل كرسالة صوتية (voice note)
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
                 f.write(audio_bytes)
                 path = f.name
@@ -195,7 +208,6 @@ async def robin_voice_handler(event):
             except Exception:
                 pass
         elif audio_bytes:
-            # mp3 كصوت عادي
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                 f.write(audio_bytes)
                 path = f.name
@@ -208,4 +220,3 @@ async def robin_voice_handler(event):
             await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
     except Exception as e:
         await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
-    
