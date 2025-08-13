@@ -165,8 +165,8 @@ async def ai_handler(event):
     response = await chat_with_gemini(question)  # الحصول على الرد من الذكاء الاصطناعي
     await event.reply(response)  # إرسال الرد للمستخدم
 
-# مستمع لرسائل تبدأ بـ "روبن+" أو "روبن " لأي مستخدم في الخاص أو المجموعات
-@l313l.on(events.NewMessage(pattern=r"^روبن(?:\+|\s)+(.*)$", incoming=True))
+# مستمع لرسائل تبدأ بـ ".روبن" أو "روبن" مع + أو مسافة لأي مستخدم في الخاص أو المجموعات
+@l313l.on(events.NewMessage(pattern=r"^\.?روبن(?:\+|\s)+(.*)$", incoming=True))
 async def robin_voice_handler(event):
     question = (event.pattern_match.group(1) or "").strip()
     if not question:
@@ -208,3 +208,4 @@ async def robin_voice_handler(event):
             await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
     except Exception as e:
         await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+    
