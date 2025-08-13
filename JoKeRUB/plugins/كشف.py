@@ -97,13 +97,13 @@ async def fetch_info(replied_user, event):
 
     # تنسيق نظيف وبدون تعبيرات وبخط عريض
     caption = """
-<b>معلومات المستخدم من سورس RobinSource </b>
+<b>معلومات المستخدم من RobinSource </b>
 ——————————
 <b>الاسم:</b> {full_name}
 <b>المعرف:</b> {username}
 <b>الايدي:</b> <code>{user_id}</code>
 <b>الرتبة:</b> {rotbat}
-<b>الموقع في السورس:</b> {position}
+<b>موقعه في السورس:</b> {position}
 <b>عدد الصور:</b> {replied_user_profile_photos_count}
 <b>الحساب:</b> <a href="tg://user?id={user_id}">{first_name}</a>
 <b>النبذة:</b> {user_bio}
