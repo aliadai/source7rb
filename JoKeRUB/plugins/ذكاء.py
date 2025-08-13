@@ -3,25 +3,23 @@ import requests
 import json
 import random
 from telethon import events
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, CallbackContext
-import logging
 import os
-import io
 import tempfile
-import asyncio
 from typing import Optional
-import re
+try:
+    from JoKeRUB import admin_cmd
+except Exception:
+    admin_cmd = None
+
+try:
+    from pydub import AudioSegment
+except Exception:
+    AudioSegment = None
 
 try:
     from gtts import gTTS
 except Exception:
     gTTS = None
-try:
-    from pydub import AudioSegment
-except Exception:
-    AudioSegment = None
 
 ELEVENLABS_API_KEY = os.getenv(
     "ELEVENLABS_API_KEY",
@@ -146,17 +144,6 @@ async def chat_with_gemini(question: str) -> str:
     except requests.exceptions.RequestException:
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
-def _normalize_trigger_text(s: str) -> str:
-    if not s:
-        return ""
-    # إزالة محارف التحكم بالاتجاه وبعض المحارف غير المرغوبة
-    s = re.sub(r"[\u200e\u200f\u202a-\u202e]", "", s)
-    s = s.strip()
-    # إزالة علامات ترقيم متكررة في البداية (نقاط، فواصل، شرطات، إلخ)
-    s = re.sub(r"^[\s\.\-_/،!؟~]+", "", s)
-    # توحيد المسافات المتعددة
-    s = re.sub(r"\s+", " ", s)
-    return s
 
 @l313l.on(events.NewMessage(pattern=r"^\.ذكاء (.+)"))
 async def ai_handler(event):
@@ -166,57 +153,41 @@ async def ai_handler(event):
     response = await chat_with_gemini(question)
     await event.reply(response)
 
-@l313l.on(events.NewMessage(incoming=True))
-async def robin_voice_handler(event):
-    text = (event.raw_text or "").strip()
-    if not text:
-        return
-
-    t = _normalize_trigger_text(text)
-
-    question = ""
-    if t.startswith("روبن+"):
-        question = t.split("+", 1)[1].strip()
-    elif t.startswith("روبن "):
-        question = t[len("روبن "):].strip()
-    elif t == "روبن":
-        await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
-        return
-    else:
-        return
-
-    if not question:
-        await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
-        return
-
-    reply_text = await chat_with_gemini(question)
-
-    audio_bytes, mime = await synthesize_voice_bytes(reply_text)
-    description = (
-        f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
-        f"النص المقروء:\n{reply_text}"
-    )
-
-    try:
-        if audio_bytes and mime == "audio/ogg":
-            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
-        elif audio_bytes:
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                f.write(audio_bytes)
-                path = f.name
-            await event.client.send_file(event.chat_id, file=path, caption=description)
-            try:
-                os.remove(path)
-            except Exception:
-                pass
-        else:
-            await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
-    except Exception as e:
-        await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+if admin_cmd:
+    @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)?(.*)"))
+    async def robin_voice_admin_handler(event):
+        g = event.pattern_match.group(1) if event.pattern_match else ""
+        question = (g or "").strip()
+        if not question:
+            await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            return
+        reply_text = await chat_with_gemini(question)
+        audio_bytes, mime = await synthesize_voice_bytes(reply_text)
+        description = (
+            f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
+            f"النص المقروء:\n{reply_text}"
+        )
+        try:
+            if audio_bytes and mime == "audio/ogg":
+                with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+                    f.write(audio_bytes)
+                    path = f.name
+                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+            elif audio_bytes:
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                    f.write(audio_bytes)
+                    path = f.name
+                await event.client.send_file(event.chat_id, file=path, caption=description)
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+            else:
+                await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
+        except Exception as e:
+            await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
+        
