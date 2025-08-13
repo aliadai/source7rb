@@ -154,13 +154,17 @@ async def ai_handler(event):
     await event.reply(response)
 
 if admin_cmd:
-    @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)?(.*)"))
+    @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)+(.*)"))
     async def robin_voice_admin_handler(event):
         g = event.pattern_match.group(1) if event.pattern_match else ""
         question = (g or "").strip()
         if not question:
             await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
             return
+        try:
+            await event.edit("ثواني وارد عليك…")
+        except Exception:
+            pass
         reply_text = await chat_with_gemini(question)
         audio_bytes, mime = await synthesize_voice_bytes(reply_text)
         description = (
@@ -190,4 +194,48 @@ if admin_cmd:
                 await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
         except Exception as e:
             await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
-        
+
+# مستمع عام لرسائل الجميع بدون نقطة أو معها: "روبن+سؤال" أو "روبن سؤال"
+@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?روبن(?:\+|\s)+(.*)$"))
+async def robin_voice_public_handler(event):
+    try:
+        sender = await event.get_sender()
+        me = await event.client.get_me()
+        if sender and me and sender.id == me.id:
+            return
+    except Exception:
+        pass
+    g = event.pattern_match.group(1) if event.pattern_match else ""
+    question = (g or "").strip()
+    if not question:
+        await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+        return
+    reply_text = await chat_with_gemini(question)
+    audio_bytes, mime = await synthesize_voice_bytes(reply_text)
+    description = (
+        f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
+        f"النص المقروء:\n{reply_text}"
+    )
+    try:
+        if audio_bytes and mime == "audio/ogg":
+            with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+                f.write(audio_bytes)
+                path = f.name
+            await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description, reply_to=event.id)
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        elif audio_bytes:
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                f.write(audio_bytes)
+                path = f.name
+            await event.client.send_file(event.chat_id, file=path, caption=description, reply_to=event.id)
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        else:
+            await event.reply(f"{reply_text}\n\n(ملاحظة: تعذّر إنشاء صوتية الآن)")
+    except Exception as e:
+        await event.reply(f"حدث خطأ أثناء إرسال الصوتية.\n\n{reply_text}")
