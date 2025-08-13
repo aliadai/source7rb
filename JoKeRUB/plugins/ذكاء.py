@@ -30,32 +30,54 @@ ELEVENLABS_VOICE_ID = os.getenv(
     "YExhVa4bZONzeingloMX"
 )
 ELEVENLABS_OUTPUT_FORMAT = os.getenv("ELEVENLABS_OUTPUT_FORMAT", "opus_32000")
+ELEVENLABS_FALLBACK_VOICE_IDS = [
+    "21m00Tcm4TlvDq8ikWAM",
+    "EXAVITQu4vr4xnSDxMaL",
+]
 
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
-    """يحاول إنشاء ملف صوتي عبر ElevenLabs بصيغة OGG/Opus عالية الوضوح. يرجع bytes أو None."""
     if not ELEVENLABS_API_KEY:
         return None
     try:
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        tried = []
+        voice_ids = []
+        if ELEVENLABS_VOICE_ID:
+            voice_ids.append(ELEVENLABS_VOICE_ID)
+        for vid in ELEVENLABS_FALLBACK_VOICE_IDS:
+            if vid not in voice_ids:
+                voice_ids.append(vid)
         headers = {
             "xi-api-key": ELEVENLABS_API_KEY,
             "accept": "audio/ogg",
             "Content-Type": "application/json",
         }
-        payload = {
-            "text": text,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": {
-                "stability": 0.25,
-                "similarity_boost": 0.9,
-                "style": 0.55,
-                "use_speaker_boost": True
-            },
-            "output_format": ELEVENLABS_OUTPUT_FORMAT
-        }
-        r = requests.post(url, json=payload, headers=headers, timeout=60)
-        if r.status_code == 200 and r.content:
-            return r.content
+        for vid in voice_ids:
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
+            payload = {
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": 0.25,
+                    "similarity_boost": 0.95,
+                    "style": 0.6,
+                    "use_speaker_boost": True
+                },
+                "output_format": ELEVENLABS_OUTPUT_FORMAT
+            }
+            r = requests.post(url, json=payload, headers=headers, timeout=60)
+            if r.status_code == 200 and r.content:
+                try:
+                    os.environ["__EL_USED_VOICE_ID__"] = vid
+                except Exception:
+                    pass
+                return r.content
+            tried.append((vid, r.status_code, r.text[:200] if hasattr(r, 'text') else ''))
+        try:
+            print("ElevenLabs TTS attempts failed:")
+            for vid, st, body in tried:
+                print(f"  voice_id={vid} status={st} body={body}")
+        except Exception:
+            pass
     except Exception:
         return None
     return None
@@ -94,19 +116,19 @@ def mp3_bytes_to_ogg_opus(mp3_bytes: bytes) -> Optional[bytes]:
     except Exception:
         return None
 
-async def synthesize_voice_bytes(text: str) -> (Optional[bytes], str):
-    """يرجع (bytes, mime). يفضّل ElevenLabs بإخراج OGG/Opus واضح، ثم gTTS مع تحويل إن أمكن."""
+async def synthesize_voice_bytes(text: str):
     el_bytes = tts_with_elevenlabs(text)
     if el_bytes:
-        return el_bytes, "audio/ogg"
+        used_voice = os.environ.get("__EL_USED_VOICE_ID__", ELEVENLABS_VOICE_ID)
+        return el_bytes, "audio/ogg", f"ElevenLabs ({used_voice})"
 
     mp3_bytes = tts_with_gtts(text)
     if not mp3_bytes:
-        return None, ""
+        return None, "", ""
     ogg_bytes = mp3_bytes_to_ogg_opus(mp3_bytes)
     if ogg_bytes:
-        return ogg_bytes, "audio/ogg"
-    return mp3_bytes, "audio/mpeg"
+        return ogg_bytes, "audio/ogg", "gTTS"
+    return mp3_bytes, "audio/mpeg", "gTTS"
 
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
@@ -166,8 +188,9 @@ if admin_cmd:
         except Exception:
             pass
         reply_text = await chat_with_gemini(question)
-        audio_bytes, mime = await synthesize_voice_bytes(reply_text)
+        audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
         description = (
+            f"الصوت: {source}\n"
             f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
             f"النص المقروء:\n{reply_text}"
         )
@@ -201,18 +224,32 @@ async def robin_voice_public_handler(event):
     try:
         sender = await event.get_sender()
         me = await event.client.get_me()
-        if sender and me and sender.id == me.id:
-            return
     except Exception:
-        pass
+        sender = None
+        me = None
     g = event.pattern_match.group(1) if event.pattern_match else ""
     question = (g or "").strip()
-    if not question:
-        await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
-        return
+    if sender and me and sender.id == me.id:
+        if admin_cmd:
+            return
+        if not question:
+            try:
+                await event.edit("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            except Exception:
+                await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            return
+        try:
+            await event.edit("ثواني وارد عليك…")
+        except Exception:
+            pass
+    else:
+        if not question:
+            await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            return
     reply_text = await chat_with_gemini(question)
-    audio_bytes, mime = await synthesize_voice_bytes(reply_text)
+    audio_bytes, mime, source = await synthesize_voice_bytes(reply_text)
     description = (
+        f"الصوت: {source}\n"
         f"وصف الصوتية: رد مؤنث لطيف مع لمسة مزاح.\n\n"
         f"النص المقروء:\n{reply_text}"
     )
@@ -221,7 +258,10 @@ async def robin_voice_public_handler(event):
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
                 f.write(audio_bytes)
                 path = f.name
-            await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description, reply_to=event.id)
+            if sender and me and sender.id == me.id:
+                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description)
+            else:
+                await event.client.send_file(event.chat_id, file=path, voice_note=True, caption=description, reply_to=event.id)
             try:
                 os.remove(path)
             except Exception:
@@ -230,7 +270,10 @@ async def robin_voice_public_handler(event):
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                 f.write(audio_bytes)
                 path = f.name
-            await event.client.send_file(event.chat_id, file=path, caption=description, reply_to=event.id)
+            if sender and me and sender.id == me.id:
+                await event.client.send_file(event.chat_id, file=path, caption=description)
+            else:
+                await event.client.send_file(event.chat_id, file=path, caption=description, reply_to=event.id)
             try:
                 os.remove(path)
             except Exception:
