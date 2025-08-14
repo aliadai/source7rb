@@ -46,7 +46,6 @@ STYLE_RULES = (
     "قللي الإيموجي قدر الإمكان ولا تستخدميه إلا نادرًا،"
     " وحافظي على احترام الجميع ومزاح خفيف غير جارح ووضوح في الإجابة."
 )
-AI_ENABLED = True
 
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
     if not ELEVENLABS_API_KEY:
@@ -85,16 +84,6 @@ def tts_with_elevenlabs(text: str) -> Optional[bytes]:
         return None
     return None
 
-@l313l.on(events.NewMessage(pattern=r"^\.?(?:حالة الذكاء|حالة ذكاء)$"))
-async def ai_status_handler(event):
-    status = "شغال ✅" if AI_ENABLED else "موقوف ⛔"
-    try:
-        await event.edit(f"حالة الذكاء: {status}")
-    except Exception:
-        try:
-            await event.reply(f"حالة الذكاء: {status}")
-        except Exception:
-            pass
 
 def tts_with_gtts(text: str, lang: str = "ar") -> Optional[bytes]:
     """إنشاء ملف صوتي عبر gTTS (mp3). يرجع bytes أو None."""
@@ -188,8 +177,6 @@ async def chat_with_gemini(question: str) -> str:
 
 @l313l.on(events.NewMessage(pattern=r"^\.هند(?:\+|\s)+(.*)$"))
 async def robin_direct_handler(event):
-    if not AI_ENABLED:
-        return
     g = event.pattern_match.group(1) if event.pattern_match else ""
     question = (g or "").strip()
     if admin_cmd:
@@ -236,8 +223,6 @@ if admin_cmd:
 # مستمع عام لرسائل الجميع بدون نقطة أو معها: "هند+سؤال" أو "هند سؤال"
 @l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?هند(?:\+|\s)+(.*)$"))
 async def robin_voice_public_handler(event):
-    if not AI_ENABLED:
-        return
     try:
         sender = await event.get_sender()
         me = await event.client.get_me()
@@ -286,91 +271,3 @@ async def set_persona_handler(event):
         await event.respond("تم ضبط توصيف هند. التزمي بالزواج من حرب، وتجنب الحساس، وإيموجي قليل.")
     except Exception:
         pass
-
-@l313l.on(events.NewMessage(pattern=r"^\.?(?:وقف الذكاء|وقف ذكاء)$"))
-async def disable_ai_handler(event):
-    try:
-        sender = await event.get_sender()
-        me = await event.client.get_me()
-    except Exception:
-        sender = None
-        me = None
-    if not (sender and me and sender.id == me.id):
-        return
-    global AI_ENABLED
-    AI_ENABLED = False
-    try:
-        await event.edit("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
-    except Exception:
-        try:
-            await event.reply("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
-        except Exception:
-            pass
-
-@l313l.on(events.NewMessage(pattern=r"^\.?(?:شغل الذكاء|شغل ذكاء)$"))
-async def enable_ai_handler(event):
-    try:
-        sender = await event.get_sender()
-        me = await event.client.get_me()
-    except Exception:
-        sender = None
-        me = None
-    if not (sender and me and sender.id == me.id):
-        return
-    global AI_ENABLED
-    AI_ENABLED = True
-    try:
-        await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
-    except Exception:
-        try:
-            await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
-        except Exception:
-            pass
-
-# أوامر للمالك فقط عبر ar_cmd لضمان العمل حتى بدون OWNER_ID
-try:
-    @l313l.ar_cmd(pattern=r"(?:شغل|فعل)\s+(?:ال)?ذكاء$")
-    async def enable_ai_owner_ar(event):
-        global AI_ENABLED
-        AI_ENABLED = True
-        try:
-            await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
-        except Exception:
-            try:
-                await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
-            except Exception:
-                pass
-
-    @l313l.ar_cmd(pattern=r"وقف\s+(?:ال)?ذكاء$")
-    async def disable_ai_owner_ar(event):
-        global AI_ENABLED
-        AI_ENABLED = False
-        try:
-            await event.edit("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
-        except Exception:
-            try:
-                await event.reply("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
-            except Exception:
-                pass
-except Exception:
-    pass
-
-@l313l.on(events.NewMessage(pattern=r"^\.?(?:فعل الذكاء|فعل ذكاء)$"))
-async def enable_ai_alias_handler(event):
-    try:
-        sender = await event.get_sender()
-        me = await event.client.get_me()
-    except Exception:
-        sender = None
-        me = None
-    if not (sender and me and sender.id == me.id):
-        return
-    global AI_ENABLED
-    AI_ENABLED = True
-    try:
-        await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
-    except Exception:
-        try:
-            await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
-        except Exception:
-            pass
