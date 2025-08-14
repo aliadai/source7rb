@@ -31,6 +31,22 @@ ELEVENLABS_VOICE_ID = os.getenv(
 )
 ELEVENLABS_OUTPUT_FORMAT = os.getenv("ELEVENLABS_OUTPUT_FORMAT", "opus_32000")
  
+USER_PERSONA_DESC = ""
+BASE_PERSONA = (
+    "أنت هند: صانعة محتوى سعودية مرحة وذكية،"
+    " ترد بإيجاز وبأسلوب لبق وظريف، تفهم السياق وتجاوب على كل شيء تقريبًا،"
+    " لكن عند المواضيع الحساسة أو المخالفة للعادات؛ تعتذرين بلطف وتحولين الموضوع لبديل مناسب،"
+    " تحافظين على احترام الجميع وتمزحين مزاحًا خفيفًا غير جارح وتقدمين الفائدة بسرعة ووضوح."
+)
+MARRIAGE_CLAUSE = (
+    "عند أسئلة الزواج والارتباط: أنت متزوجة من حرب (مطور سورس روبن)،"
+    " وأكدي ذلك دائمًا مهما كان السياق."
+)
+STYLE_RULES = (
+    "قللي الإيموجي قدر الإمكان ولا تستخدميه إلا نادرًا،"
+    " وحافظي على احترام الجميع ومزاح خفيف غير جارح ووضوح في الإجابة."
+)
+AI_ENABLED = True
 
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
     if not ELEVENLABS_API_KEY:
@@ -129,10 +145,10 @@ async def chat_with_gemini(question: str) -> str:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {'Content-Type': 'application/json'}
         persona = (
-            "أنت روبن: صانعة محتوى سعودية مرحة وذكية،"
-            " ترد بإيجاز وبأسلوب لبق وظريف، تفهم السياق وتجاوب على كل شيء تقريبًا،"
-            " لكن عند المواضيع الحساسة أو المخالفة للعادات؛ تعتذر بلطف وتحوّل الموضوع لبديل مناسب،"
-            " تحافظ على احترام الجميع وتمزح مزاحًا خفيفًا غير جارح وتقدم فائدة بسرعة ووضوح.\n\n"
+            BASE_PERSONA +
+            (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " +
+            MARRIAGE_CLAUSE + " " +
+            STYLE_RULES + "\n\n"
         )
         payload = {
             "contents": [{
@@ -159,15 +175,19 @@ async def chat_with_gemini(question: str) -> str:
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
 
-@l313l.on(events.NewMessage(pattern=r"^\.روبن(?:\+|\s)+(.*)$"))
+@l313l.on(events.NewMessage(pattern=r"^\.هند(?:\+|\s)+(.*)$"))
 async def robin_direct_handler(event):
+    if not AI_ENABLED:
+        return
     g = event.pattern_match.group(1) if event.pattern_match else ""
     question = (g or "").strip()
+    if admin_cmd:
+        return
     if not question:
         try:
-            await event.edit("اكتب سؤالك بعد روبن مثل: .روبن+شنو معنى الحياة؟ أو .روبن شنو معنى الحياة؟")
+            await event.edit("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
         except Exception:
-            await event.reply("اكتب سؤالك بعد روبن مثل: .روبن+شنو معنى الحياة؟ أو .روبن شنو معنى الحياة؟")
+            await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
         return
     try:
         await event.edit("ثواني وارد عليك…")
@@ -180,7 +200,7 @@ async def robin_direct_handler(event):
         await event.reply(reply_text)
 
 if admin_cmd:
-    @l313l.on(admin_cmd(pattern=r"روبن(?:\+|\s)+(.*)"))
+    @l313l.on(admin_cmd(pattern=r"هند(?:\+|\s)+(.*)"))
     async def robin_voice_admin_handler(event):
         g = event.pattern_match.group(1) if event.pattern_match else ""
         question = (g or "").strip()
@@ -197,9 +217,11 @@ if admin_cmd:
         except Exception:
             await event.reply(reply_text)
 
-# مستمع عام لرسائل الجميع بدون نقطة أو معها: "روبن+سؤال" أو "روبن سؤال"
-@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?روبن(?:\+|\s)+(.*)$"))
+# مستمع عام لرسائل الجميع بدون نقطة أو معها: "هند+سؤال" أو "هند سؤال"
+@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?هند(?:\+|\s)+(.*)$"))
 async def robin_voice_public_handler(event):
+    if not AI_ENABLED:
+        return
     try:
         sender = await event.get_sender()
         me = await event.client.get_me()
@@ -213,9 +235,9 @@ async def robin_voice_public_handler(event):
             return
         if not question:
             try:
-                await event.edit("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+                await event.edit("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
             except Exception:
-                await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+                await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
             return
         try:
             await event.edit("ثواني وارد عليك…")
@@ -223,7 +245,7 @@ async def robin_voice_public_handler(event):
             pass
     else:
         if not question:
-            await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
             return
     reply_text = await chat_with_gemini(question)
     try:
@@ -233,3 +255,42 @@ async def robin_voice_public_handler(event):
             await event.reply(reply_text)
     except Exception:
         await event.reply(reply_text)
+
+@l313l.on(events.NewMessage(pattern=r"^\.?توصيف\+(.*)$"))
+async def set_persona_handler(event):
+    global USER_PERSONA_DESC
+    g = event.pattern_match.group(1) if event.pattern_match else ""
+    desc = (g or "").strip()
+    try:
+        await event.edit("تم تحديث التوصيف.")
+    except Exception:
+        pass
+    USER_PERSONA_DESC = desc
+    try:
+        await event.respond("تم ضبط توصيف هند. التزمي بالزواج من حرب، وتجنب الحساس، وإيموجي قليل.")
+    except Exception:
+        pass
+
+@l313l.on(events.NewMessage(pattern=r"^\.?وقف الذكاء$"))
+async def disable_ai_handler(event):
+    global AI_ENABLED
+    AI_ENABLED = False
+    try:
+        await event.edit("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
+    except Exception:
+        try:
+            await event.reply("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
+        except Exception:
+            pass
+
+@l313l.on(events.NewMessage(pattern=r"^\.?شغل الذكاء$"))
+async def enable_ai_handler(event):
+    global AI_ENABLED
+    AI_ENABLED = True
+    try:
+        await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
+    except Exception:
+        try:
+            await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
+        except Exception:
+            pass
