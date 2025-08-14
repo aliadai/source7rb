@@ -161,7 +161,7 @@ async def chat_with_gemini(question: str) -> str:
             }]
         }
 
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
 
         if response.status_code == 200:
             response_data = response.json()
@@ -229,7 +229,8 @@ if admin_cmd:
             await event.reply(reply_text)
 
 # مستمع عام لرسائل الجميع بدون نقطة أو معها: "<الاسم>+سؤال" أو "<الاسم> سؤال"
-@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?(.+?)(?:\+|\s)+(.*)$"))
+# ملاحظة: تجاهل الرسائل التي تبدأ بنقطة هنا لتجنب التكرار مع هاندلر المطوّر
+@l313l.on(events.NewMessage(incoming=True, pattern=r"^(?!\.)(.+?)(?:\+|\s)+(.*)$"))
 async def robin_voice_public_handler(event):
     try:
         sender = await event.get_sender()
