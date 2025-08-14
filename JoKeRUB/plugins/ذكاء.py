@@ -276,7 +276,7 @@ async def set_persona_handler(event):
     except Exception:
         pass
 
-@l313l.on(events.NewMessage(pattern=r"^\.?وقف الذكاء$"))
+@l313l.on(events.NewMessage(pattern=r"^\.?(?:وقف الذكاء|وقف ذكاء)$"))
 async def disable_ai_handler(event):
     try:
         sender = await event.get_sender()
@@ -296,7 +296,7 @@ async def disable_ai_handler(event):
         except Exception:
             pass
 
-@l313l.on(events.NewMessage(pattern=r"^\.?شغل الذكاء$"))
+@l313l.on(events.NewMessage(pattern=r"^\.?(?:شغل الذكاء|شغل ذكاء)$"))
 async def enable_ai_handler(event):
     try:
         sender = await event.get_sender()
@@ -316,7 +316,7 @@ async def enable_ai_handler(event):
         except Exception:
             pass
 
-@l313l.on(events.NewMessage(pattern=r"^\.?فعل الذكاء$"))
+@l313l.on(events.NewMessage(pattern=r"^\.?(?:فعل الذكاء|فعل ذكاء)$"))
 async def enable_ai_alias_handler(event):
     try:
         sender = await event.get_sender()
