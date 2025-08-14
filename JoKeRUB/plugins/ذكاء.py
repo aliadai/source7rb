@@ -136,6 +136,20 @@ async def synthesize_voice_bytes(text: str):
         return ogg_bytes, "audio/ogg", "gTTS"
     return mp3_bytes, "audio/mpeg", "gTTS"
 
+def is_marriage_topic(text: str) -> bool:
+    """كشف بسيط لمواضيع الزواج/الحب/العلاقات كي نضيف فقرة الزواج فقط عند الحاجة."""
+    try:
+        t = (text or "").lower()
+    except Exception:
+        t = text or ""
+    keywords = [
+        "زواج", "زوج", "متزوج", "متزوجة", "خطوبة", "خِطبة", "خطيب", "خطيبة",
+        "حب", "حبيب", "حبيبة", "عشق", "رومانس", "ارتباط", "علاقات", "علاقة",
+        "طليق", "مطلقة", "طلاق", "خيانة", "غيرة", "عريس", "عروسة", "عروس",
+        "marry", "married", "wedding", "crush"
+    ]
+    return any(k in t for k in keywords)
+
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
 UNKNOWN_RESPONSES = [
@@ -182,28 +196,34 @@ async def chat_with_gemini(question: str) -> str:
 
 @l313l.on(events.NewMessage(pattern=r"^\.(.+?)(?:\+|\s)+(.*)$"))
 async def robin_direct_handler(event):
-    name = event.pattern_match.group(1) if event.pattern_match else ""
-    g = event.pattern_match.group(2) if event.pattern_match else ""
-    if (name or "").strip() != CURRENT_NAME:
-        return
-    question = (g or "").strip()
-    if admin_cmd:
-        return
-    if not question:
+    try:
+        if not event.pattern_match or event.pattern_match.lastindex is None or event.pattern_match.lastindex < 2:
+            return
+        name = (event.pattern_match.group(1) or "").strip()
+        g = (event.pattern_match.group(2) or "").strip()
+        if name != CURRENT_NAME:
+            return
+        question = g
+        if admin_cmd:
+            return
+        if not question:
+            try:
+                await event.edit(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
+            except Exception:
+                await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
+            return
         try:
-            await event.edit(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
+            await event.edit("ثواني وارد عليك…")
         except Exception:
-            await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
-        return
-    try:
-        await event.edit("ثواني وارد عليك…")
+            pass
+        reply_text = await chat_with_gemini(question)
+        try:
+            await event.edit(reply_text)
+        except Exception:
+            await event.reply(reply_text)
     except Exception:
+        # صمتًا لتجنب توقف الهاندلر في حال أخطاء غير متوقعة
         pass
-    reply_text = await chat_with_gemini(question)
-    try:
-        await event.edit(reply_text)
-    except Exception:
-        await event.reply(reply_text)
 
 if admin_cmd:
     @l313l.on(admin_cmd(pattern=r"هند(?:\+|\s)+(.*)"))
