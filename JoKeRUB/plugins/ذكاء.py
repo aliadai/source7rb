@@ -47,6 +47,9 @@ STYLE_RULES = (
     " وحافظي على احترام الجميع ومزاح خفيف غير جارح ووضوح في الإجابة."
 )
 
+# الاسم/التريغر الحالي للشخصية (افتراضيًا: هند)
+CURRENT_NAME = "هند"
+
 def tts_with_elevenlabs(text: str) -> Optional[bytes]:
     if not ELEVENLABS_API_KEY:
         return None
@@ -147,9 +150,11 @@ async def chat_with_gemini(question: str) -> str:
         persona = (
             BASE_PERSONA +
             (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " +
-            MARRIAGE_CLAUSE + " " +
-            STYLE_RULES + "\n\n"
+            STYLE_RULES
         )
+        if is_marriage_topic(question):
+            persona += " " + MARRIAGE_CLAUSE
+        persona += "\n\n"
         payload = {
             "contents": [{
                 "parts": [{"text": persona + question}]
@@ -175,17 +180,20 @@ async def chat_with_gemini(question: str) -> str:
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
 
-@l313l.on(events.NewMessage(pattern=r"^\.هند(?:\+|\s)+(.*)$"))
+@l313l.on(events.NewMessage(pattern=r"^\.(.+?)(?:\+|\s)+(.*)$"))
 async def robin_direct_handler(event):
-    g = event.pattern_match.group(1) if event.pattern_match else ""
+    name = event.pattern_match.group(1) if event.pattern_match else ""
+    g = event.pattern_match.group(2) if event.pattern_match else ""
+    if (name or "").strip() != CURRENT_NAME:
+        return
     question = (g or "").strip()
     if admin_cmd:
         return
     if not question:
         try:
-            await event.edit("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+            await event.edit(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
         except Exception:
-            await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+            await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
         return
     try:
         await event.edit("ثواني وارد عليك…")
@@ -220,8 +228,8 @@ if admin_cmd:
         except Exception:
             await event.reply(reply_text)
 
-# مستمع عام لرسائل الجميع بدون نقطة أو معها: "هند+سؤال" أو "هند سؤال"
-@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?هند(?:\+|\s)+(.*)$"))
+# مستمع عام لرسائل الجميع بدون نقطة أو معها: "<الاسم>+سؤال" أو "<الاسم> سؤال"
+@l313l.on(events.NewMessage(incoming=True, pattern=r"^\.?(.+?)(?:\+|\s)+(.*)$"))
 async def robin_voice_public_handler(event):
     try:
         sender = await event.get_sender()
@@ -229,16 +237,19 @@ async def robin_voice_public_handler(event):
     except Exception:
         sender = None
         me = None
-    g = event.pattern_match.group(1) if event.pattern_match else ""
+    name = event.pattern_match.group(1) if event.pattern_match else ""
+    g = event.pattern_match.group(2) if event.pattern_match else ""
+    if (name or "").strip() != CURRENT_NAME:
+        return
     question = (g or "").strip()
     if sender and me and sender.id == me.id:
         if admin_cmd:
             return
         if not question:
             try:
-                await event.edit("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+                await event.edit(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             except Exception:
-                await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+                await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             return
         try:
             await event.edit("ثواني وارد عليك…")
@@ -246,7 +257,7 @@ async def robin_voice_public_handler(event):
             pass
     else:
         if not question:
-            await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+            await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             return
     reply_text = await chat_with_gemini(question)
     try:
@@ -257,17 +268,25 @@ async def robin_voice_public_handler(event):
     except Exception:
         await event.reply(reply_text)
 
-@l313l.on(events.NewMessage(pattern=r"^\.?توصيف\+(.*)$"))
+@l313l.on(events.NewMessage(pattern=r"^\.?توصيف(?:\+|\s)+(.*)$"))
 async def set_persona_handler(event):
-    global USER_PERSONA_DESC
+    global USER_PERSONA_DESC, CURRENT_NAME
     g = event.pattern_match.group(1) if event.pattern_match else ""
     desc = (g or "").strip()
+    # محاولة استخراج اسم من صيغة مثل: "انتي نور ..."
+    try:
+        import re
+        m = re.search(r"\b(?:انتي|انت|أنت)\s+([\w\u0600-\u06FF]+)", desc)
+        if m:
+            CURRENT_NAME = m.group(1)
+    except Exception:
+        pass
     try:
         await event.edit("تم تحديث التوصيف.")
     except Exception:
         pass
     USER_PERSONA_DESC = desc
     try:
-        await event.respond("تم ضبط توصيف هند. التزمي بالزواج من حرب، وتجنب الحساس، وإيموجي قليل.")
+        await event.respond(f"تم ضبط التوصيف. الاسم الحالي: {CURRENT_NAME}. التزمي بالزواج من حرب وقت مواضيع الزواج فقط، وتجنب الحساس، وإيموجي قليل.")
     except Exception:
         pass
