@@ -85,6 +85,17 @@ def tts_with_elevenlabs(text: str) -> Optional[bytes]:
         return None
     return None
 
+@l313l.on(events.NewMessage(pattern=r"^\.?(?:حالة الذكاء|حالة ذكاء)$"))
+async def ai_status_handler(event):
+    status = "شغال ✅" if AI_ENABLED else "موقوف ⛔"
+    try:
+        await event.edit(f"حالة الذكاء: {status}")
+    except Exception:
+        try:
+            await event.reply(f"حالة الذكاء: {status}")
+        except Exception:
+            pass
+
 def tts_with_gtts(text: str, lang: str = "ar") -> Optional[bytes]:
     """إنشاء ملف صوتي عبر gTTS (mp3). يرجع bytes أو None."""
     if gTTS is None:
@@ -315,6 +326,34 @@ async def enable_ai_handler(event):
             await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
         except Exception:
             pass
+
+# أوامر للمالك فقط عبر ar_cmd لضمان العمل حتى بدون OWNER_ID
+try:
+    @l313l.ar_cmd(pattern=r"(?:شغل|فعل)\s+(?:ال)?ذكاء$")
+    async def enable_ai_owner_ar(event):
+        global AI_ENABLED
+        AI_ENABLED = True
+        try:
+            await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
+        except Exception:
+            try:
+                await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
+            except Exception:
+                pass
+
+    @l313l.ar_cmd(pattern=r"وقف\s+(?:ال)?ذكاء$")
+    async def disable_ai_owner_ar(event):
+        global AI_ENABLED
+        AI_ENABLED = False
+        try:
+            await event.edit("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
+        except Exception:
+            try:
+                await event.reply("تم إيقاف الذكاء. لن أرد حتى تشغّله.")
+            except Exception:
+                pass
+except Exception:
+    pass
 
 @l313l.on(events.NewMessage(pattern=r"^\.?(?:فعل الذكاء|فعل ذكاء)$"))
 async def enable_ai_alias_handler(event):
