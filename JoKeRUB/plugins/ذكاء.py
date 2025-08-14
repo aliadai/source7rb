@@ -204,8 +204,13 @@ if admin_cmd:
     async def robin_voice_admin_handler(event):
         g = event.pattern_match.group(1) if event.pattern_match else ""
         question = (g or "").strip()
+        if not AI_ENABLED:
+            return
         if not question:
-            await event.reply("اكتب سؤالك بعد روبن مثل: روبن شنو معنى الحياة؟ أو روبن+شنو معنى الحياة؟")
+            try:
+                await event.edit("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
+            except Exception:
+                await event.reply("اكتب سؤالك بعد هند مثل: هند شنو معنى الحياة؟ أو هند+شنو معنى الحياة؟")
             return
         try:
             await event.edit("ثواني وارد عليك…")
@@ -273,6 +278,14 @@ async def set_persona_handler(event):
 
 @l313l.on(events.NewMessage(pattern=r"^\.?وقف الذكاء$"))
 async def disable_ai_handler(event):
+    try:
+        sender = await event.get_sender()
+        me = await event.client.get_me()
+    except Exception:
+        sender = None
+        me = None
+    if not (sender and me and sender.id == me.id):
+        return
     global AI_ENABLED
     AI_ENABLED = False
     try:
@@ -285,6 +298,34 @@ async def disable_ai_handler(event):
 
 @l313l.on(events.NewMessage(pattern=r"^\.?شغل الذكاء$"))
 async def enable_ai_handler(event):
+    try:
+        sender = await event.get_sender()
+        me = await event.client.get_me()
+    except Exception:
+        sender = None
+        me = None
+    if not (sender and me and sender.id == me.id):
+        return
+    global AI_ENABLED
+    AI_ENABLED = True
+    try:
+        await event.edit("تم تشغيل الذكاء. هند جاهزة للرد.")
+    except Exception:
+        try:
+            await event.reply("تم تشغيل الذكاء. هند جاهزة للرد.")
+        except Exception:
+            pass
+
+@l313l.on(events.NewMessage(pattern=r"^\.?فعل الذكاء$"))
+async def enable_ai_alias_handler(event):
+    try:
+        sender = await event.get_sender()
+        me = await event.client.get_me()
+    except Exception:
+        sender = None
+        me = None
+    if not (sender and me and sender.id == me.id):
+        return
     global AI_ENABLED
     AI_ENABLED = True
     try:
