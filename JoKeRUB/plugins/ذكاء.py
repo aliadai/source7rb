@@ -25,6 +25,9 @@ ELEVENLABS_API_KEY = os.getenv(
     "ELEVENLABS_API_KEY",
     "sk_53ba6f21a7ca94293d6e64ece297988f8cc187642e57aa6e"
 )
+
+# تعريف زوج هِند لامتيازات خاصة في الرد
+SPOUSE_USER_ID = 7790006404  # زوجها الوحيد المعرّف
 ELEVENLABS_VOICE_ID = os.getenv(
     "ELEVENLABS_VOICE_ID",
     "y3H6zY6KvCH2pEuQjmv8"
@@ -150,6 +153,27 @@ def is_marriage_topic(text: str) -> bool:
     ]
     return any(k in t for k in keywords)
 
+def is_female_declared(text: str) -> bool:
+    """يتحقق إن كان المستخدم يصرّح بأنه بنت/أنثى ليُخاطَب بالمؤنث."""
+    try:
+        t = (text or "").lower()
+    except Exception:
+        t = text or ""
+    keys = ["انا بنت", "أنا بنت", "بنت", "فتاة", "انثى", "أنثى", "girl", "female"]
+    return any(k in t for k in keys)
+
+def is_intimate_request(text: str) -> bool:
+    """كشف طلبات حميمية بسيطة (مثل بوسة/حضن)."""
+    try:
+        t = (text or "").lower()
+    except Exception:
+        t = text or ""
+    keys = [
+        "بوس", "بوسه", "بوسة", "قبلة", "قبليني", "حضن", "حضني",
+        "kiss", "hug"
+    ]
+    return any(k in t for k in keys)
+
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
 UNKNOWN_RESPONSES = [
@@ -168,6 +192,11 @@ async def chat_with_gemini(question: str) -> str:
         )
         if is_marriage_topic(question):
             persona += " " + MARRIAGE_CLAUSE
+        # قواعد مخاطبة الجنس: افتراضيًا ذكوري، إلا إذا صرّح المستخدم أنه بنت
+        if is_female_declared(question):
+            persona += "\n- خاطبي المستخدم بصيغة المؤنث فقط إن صرّح بذلك."
+        else:
+            persona += "\n- خاطبي المستخدم بصيغة المذكر افتراضيًا ولا تفترضي أنه أنثى."
         persona += "\n\n"
         payload = {
             "contents": [{
@@ -212,6 +241,27 @@ async def robin_direct_handler(event):
             except Exception:
                 await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             return
+        # حظر الطلبات الحميمية لغير الزوج والسماح للزوج برد لطيف مباشر
+        try:
+            sender = await event.get_sender()
+        except Exception:
+            sender = None
+        if is_intimate_request(question):
+            if not sender or sender.id != SPOUSE_USER_ID:
+                msg = "❌ ما يصير، أنا متزوجة. احترم خصوصيتي لو سمحت."
+                try:
+                    await event.edit(msg)
+                except Exception:
+                    await event.reply(msg)
+                return
+            else:
+                # رد لطيف للزوج فقط
+                cute_reply = "😘 تفضل يا قلبي، اني لك وحدك."
+                try:
+                    await event.edit(cute_reply)
+                except Exception:
+                    await event.reply(cute_reply)
+                return
         try:
             await event.edit("ثواني وارد عليك…")
         except Exception:
@@ -288,6 +338,29 @@ async def robin_voice_public_handler(event):
             await event.reply(reply_text)
     except Exception:
         await event.reply(reply_text)
+
+    
+@l313l.on(events.NewMessage(incoming=True))
+async def devs_info_handler(event):
+    """رد جاهز عند سؤال: منو عبود السوري؟ أو منو كريد؟"""
+    try:
+        text = (event.raw_text or "")
+    except Exception:
+        text = ""
+    s = text.strip()
+    # تجنب التضارب مع تريغر الاسم الحالي
+    if s.startswith(CURRENT_NAME) or s.startswith(f".{CURRENT_NAME}"):
+        return
+    normalized = s.replace("؟", "").replace("?", "").strip().lower()
+    triggers = [
+        "منو عبود السوري", "من هو عبود السوري", "مين عبود السوري",
+        "منو كريد", "من هو كريد", "مين كريد"
+    ]
+    if any(k in normalized for k in triggers):
+        try:
+            await event.reply("عبود السوري وكريد من مطوّري السورس.")
+        except Exception:
+            pass
 
 @l313l.on(events.NewMessage(pattern=r"^\.?توصيف(?:\+|\s)+(.*)$"))
 async def set_persona_handler(event):
