@@ -162,6 +162,20 @@ def is_female_declared(text: str) -> bool:
     keys = ["انا بنت", "أنا بنت", "بنت", "فتاة", "انثى", "أنثى", "girl", "female"]
     return any(k in t for k in keys)
 
+def is_spouse_identity_query(text: str) -> bool:
+    """يتحقق من أسئلة هوية مثل: من أنا؟ مين أنا؟ منو اني؟"""
+    try:
+        t = (text or "").lower()
+    except Exception:
+        t = text or ""
+    # إزالة علامات الاستفهام الشائعة
+    t = t.replace("؟", "").replace("?", "").strip()
+    keys = [
+        "من انا", "مين انا", "منو اني", "من اكون", "انا من اكون",
+        "من اكون بالنسبة لك", "من انا بالنسبة لك", "من اكون عندك", "من انا عندك"
+    ]
+    return any(k in t for k in keys)
+
 def is_intimate_request(text: str) -> bool:
     """كشف طلبات حميمية بسيطة (مثل بوسة/حضن)."""
     try:
@@ -174,6 +188,19 @@ def is_intimate_request(text: str) -> bool:
     ]
     return any(k in t for k in keys)
 
+def is_explicit_sex_request(text: str) -> bool:
+    """يكشف طلبات جنسية صريحة (نرفضها للجميع وفق سياسات السلامة)."""
+    try:
+        t = (text or "").lower()
+    except Exception:
+        t = text or ""
+    # قائمة كلمات/جمل عامة لمواضيع جنسية صريحة (مختصرة وغير وصفية)
+    keys = [
+        "ممارسة جنسية", "ممارسه جنسيه", "الجنس", "سكس", "جماع", "نكاح",
+        "افعل الجنس", "مارسي الجنس", "ممارسة الجنس", "sex"
+    ]
+    return any(k in t for k in keys)
+
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
 UNKNOWN_RESPONSES = [
@@ -181,7 +208,7 @@ UNKNOWN_RESPONSES = [
     "❌ هناك مشكلة في الاتصال، حاول مرة أخرى لاحقًا."
 ]
 
-async def chat_with_gemini(question: str) -> str:
+async def chat_with_gemini(question: str, spouse_mode: bool = False) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {'Content-Type': 'application/json'}
@@ -192,6 +219,11 @@ async def chat_with_gemini(question: str) -> str:
         )
         if is_marriage_topic(question):
             persona += " " + MARRIAGE_CLAUSE
+        # تخصيص الردود عند مخاطبة الزوج فقط
+        if spouse_mode:
+            persona += "\n- انتبهي: المتحدث هو زوجك حرب؛ اعترفي أنه زوجك وخاطبيه بمحبة خاصة. لا تُظهري هذا الاعتراف مع أي شخص آخر."
+        else:
+            persona += "\n- لا تفترضي وجود علاقة زواج مع المستخدم ما لم يطلب موضوع زواج/حب."
         # قواعد مخاطبة الجنس: افتراضيًا ذكوري، إلا إذا صرّح المستخدم أنه بنت
         if is_female_declared(question):
             persona += "\n- خاطبي المستخدم بصيغة المؤنث فقط إن صرّح بذلك."
@@ -241,11 +273,34 @@ async def robin_direct_handler(event):
             except Exception:
                 await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             return
-        # حظر الطلبات الحميمية لغير الزوج والسماح للزوج برد لطيف مباشر
         try:
             sender = await event.get_sender()
         except Exception:
             sender = None
+        # بوابة أمان: رفض أي طلبات جنسية صريحة للجميع
+        if is_explicit_sex_request(question):
+            msg = "❌ ما أقدر أتكلم أو أنفّذ أمور خاصة وصريحة. خلّينا على أسئلة محترمة لو سمحت."
+            try:
+                if sender and me and sender.id == me.id:
+                    await event.respond(msg)
+                else:
+                    await event.reply(msg)
+            except Exception:
+                await event.reply(msg)
+            return
+        # تعريف خاص للزوج عند سؤال الهوية
+        if is_spouse_identity_query(question):
+            if sender and sender.id == SPOUSE_USER_ID:
+                special = "أكيد تعرفيني! انت زوجي حرب وروحي 💍"
+                try:
+                    if sender and me and sender.id == me.id:
+                        await event.respond(special)
+                    else:
+                        await event.reply(special)
+                except Exception:
+                    await event.reply(special)
+                return
+        # حظر الطلبات الحميمية لغير الزوج والسماح للزوج برد لطيف مباشر
         if is_intimate_request(question):
             if not sender or sender.id != SPOUSE_USER_ID:
                 msg = "❌ ما يصير، أنا متزوجة. احترم خصوصيتي لو سمحت."
@@ -266,7 +321,8 @@ async def robin_direct_handler(event):
             await event.edit("ثواني وارد عليك…")
         except Exception:
             pass
-        reply_text = await chat_with_gemini(question)
+        is_spouse = bool(sender and sender.id == SPOUSE_USER_ID)
+        reply_text = await chat_with_gemini(question, spouse_mode=is_spouse)
         try:
             await event.edit(reply_text)
         except Exception:
