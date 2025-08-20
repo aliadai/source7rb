@@ -44,7 +44,7 @@ async def _(event):
      if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
         F_O_1 = random.choice(rehu)
         await event.edit(
-        f"— قائمة أوامر 7rB —\n"
+        f"— قائمة أوامر سوَرس Robin —\n"
         "────────────────────────\n"
         "• `.م1` — أوامر الإدمن\n"
         "• `.م2` — أوامر المجموعة\n"
