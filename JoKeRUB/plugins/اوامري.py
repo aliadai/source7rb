@@ -135,8 +135,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="Jmrz"),
-     Button.inline("رجوع", data="krrznd")]]
+     Button.inline("- التاليّ -", data="Jmrz"),
+     Button.inline("- السابق -", data="krrznd")]]
     await event.edit(ROZBOT, buttons=buttons)
 
 
@@ -145,8 +145,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="r7brz"),
-     Button.inline("رجوع", data="rozbot")]]
+     Button.inline("- التاليّ -", data="r7brz"),
+     Button.inline("- السابق -", data="rozbot")]]
     await event.edit(JROZT, buttons=buttons)
 
 
@@ -155,8 +155,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="sejrz"),
-     Button.inline("رجوع", data="Jmrz")]]
+     Button.inline("- التاليّ -", data="sejrz"),
+     Button.inline("- السابق -", data="Jmrz")]]
     await event.edit(JMTRD, buttons=buttons)
 
 
@@ -165,8 +165,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="gro"),
-     Button.inline("رجوع", data="r7brz")]]
+     Button.inline("- التاليّ -", data="gro"),
+     Button.inline("- السابق -", data="r7brz")]]
     await event.edit(ROZSEG, buttons=buttons)
 
 
@@ -175,8 +175,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="grrz"),
-     Button.inline("رجوع", data="sejrz")]]
+     Button.inline("- التاليّ -", data="grrz"),
+     Button.inline("- السابق -", data="sejrz")]]
     await event.edit(JMGR1,buttons=buttons)
 
 
@@ -185,8 +185,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="iiers"),
-     Button.inline("رجوع", data="gro")]]
+     Button.inline("- التاليّ -", data="iiers"),
+     Button.inline("- السابق -",, data="gro")]]
     await event.edit(ROZPRV, buttons=buttons)
 
 
@@ -195,8 +195,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="rfhrz"),
-     Button.inline("رجوع", data="grrz")]]
+     Button.inline("- التاليّ -", data="rfhrz"),
+     Button.inline("- السابق -", data="grrz")]]
     await event.edit(HERP, buttons=buttons)
 
 
@@ -205,8 +205,8 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="uscuxrz"),
-     Button.inline("رجوع", data="iiers")]]
+     Button.inline("- التاليّ -", data="uscuxrz"),
+     Button.inline("- السابق -", data="iiers")]]
     await event.edit(T7SHIZ, buttons=buttons)
 
 
@@ -215,12 +215,12 @@ async def _(event):
 async def _(event):
     buttons = [
     [
-     Button.inline("التالي", data="uscuxrz"),
-     Button.inline("رجوع", data="rfhrz")]]
+     Button.inline("- التاليّ -", data="uscuxrz"),
+     Button.inline("- السابق -", data="rfhrz")]]
     await event.edit(HERP, buttons=buttons)
 
 @l313l.tgbot.on(CallbackQuery(data=re.compile(rb"uscuxrz")))
 @check_owner
 async def _(event):
-    buttons = [[Button.inline("رجوع", data="extra"),]]
+    buttons = [[Button.inline("السابق", data="extra"),]]
     await event.edit(CLORN, buttons=buttons)
