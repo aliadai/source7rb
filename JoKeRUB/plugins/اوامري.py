@@ -10,7 +10,7 @@ from ..core import check_owner
 from ..Config import Config
 
 JEP_IC = None
-ROE = """**مرحباً بك في سورس روبن الشفافة**
+ROE = """**مرحباً بك فيّ أوامر سوَرس Robin الشفافة**
 
 **قائمة الأوامر المتاحة:**
 
@@ -71,7 +71,7 @@ if Config.TG_BOT_USERNAME is not None and tgbot is not None:
                 ],
             ]
             result = builder.article(
-                title="سورس روبن الشفافة",
+                title="اوامر سورس Robin الشفافة",
                 text=ROE,
                 buttons=buttons,
                 link_preview=False,
