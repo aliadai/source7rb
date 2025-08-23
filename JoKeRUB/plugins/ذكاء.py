@@ -1,23 +1,6 @@
-try:
-    import torch
-    from transformers import pipeline
-    torch_available = True
-except ImportError:
-    torch_available = False
-
-import re
-
-from telethon import Button, events
-from telethon.events import CallbackQuery
-
-from l313l.razan.resources.assistant import *
-from l313l.razan.resources.mybot import *
-from JoKeRUB import l313l
-from ..core import check_owner
-from ..Config import Config
- 
 import sys
 import subprocess
+import re
 
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
@@ -30,25 +13,30 @@ BASE_PERSONA = (
 )
 STYLE_RULES = "لا تستخدمي ايموجيات، خلي الردود واضحة ومباشرة وفيها حس فكاهي وظريف."
 
-# --- محاولة استيراد وتثبيت torch و transformers ---
+def try_install_torch_cpu():
+    pkgs = ["torch", "torchvision", "torchaudio"]
+    for pkg in pkgs:
+        try:
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install", pkg,
+                "--index-url", "https://download.pytorch.org/whl/cpu"
+            ])
+        except Exception as e:
+            pass
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "transformers"])
+    except Exception as e:
+        pass
+
 torch_available = False
 generator = None
-
-def try_install(package):
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        return True
-    except Exception as e:
-        return False
 
 try:
     import torch
     from transformers import pipeline
     torch_available = True
 except ImportError:
-    # حاول التثبيت التلقائي
-    torch_ok = try_install("torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu")
-    transformers_ok = try_install("transformers")
+    try_install_torch_cpu()
     try:
         import torch
         from transformers import pipeline
@@ -60,6 +48,7 @@ if torch_available:
     try:
         generator = pipeline("text-generation", model="distilgpt2")
     except Exception:
+        generator = None
         torch_available = False
 
 def is_love_related(text):
@@ -87,9 +76,12 @@ def generate_hind_reply(prompt, is_love=False):
         persona += "\n- سؤال عادي، ردي بشكل مرِح وبدون ذكر الزواج أو الغيرة أو الحرب."
 
     full_prompt = persona + "\n\n" + prompt
-    result = generator(full_prompt, max_length=120, num_return_sequences=1)
-    response = result[0]["generated_text"]
-    return response
+    try:
+        result = generator(full_prompt, max_length=120, num_return_sequences=1)
+        response = result[0]["generated_text"]
+        return response
+    except Exception:
+        return "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
 
 # أمر ai
 @l313l.ar_cmd(
@@ -98,15 +90,16 @@ def generate_hind_reply(prompt, is_love=False):
 )
 async def ai_cmd(event):
     prompt = event.pattern_match.group(1)
-    reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
-    if torch_available and generator is not None:
-        try:
-            reply = generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"]
-        except Exception:
-            reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
+    if not torch_available or generator is None:
+        await event.reply("- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر.")
+        return
+    try:
+        reply = generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"]
+    except Exception:
+        reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
     await event.reply(reply)
 
-# أمر هند (رد تلقائي عند هند+سؤال أو هند سؤال) في أي مكان
+# أمر هند (رد تلقائي عند هند+سؤال أو هند سؤال)
 @l313l.ar_cmd(
     pattern="هند(?:\\+|\\s)+(.*)",
     command=("هند", "ذكاء اصطناعي"),
