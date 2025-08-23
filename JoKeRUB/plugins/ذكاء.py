@@ -15,6 +15,9 @@ from l313l.razan.resources.mybot import *
 from JoKeRUB import l313l
 from ..core import check_owner
 from ..Config import Config
+ 
+import sys
+import subprocess
 
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
@@ -26,6 +29,38 @@ BASE_PERSONA = (
     "أما في المواضيع العادية، ردي بشكل عفوي ومرِح وبدون ذكر الزواج أو الغيرة."
 )
 STYLE_RULES = "لا تستخدمي ايموجيات، خلي الردود واضحة ومباشرة وفيها حس فكاهي وظريف."
+
+# --- محاولة استيراد وتثبيت torch و transformers ---
+torch_available = False
+generator = None
+
+def try_install(package):
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        return True
+    except Exception as e:
+        return False
+
+try:
+    import torch
+    from transformers import pipeline
+    torch_available = True
+except ImportError:
+    # حاول التثبيت التلقائي
+    torch_ok = try_install("torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu")
+    transformers_ok = try_install("transformers")
+    try:
+        import torch
+        from transformers import pipeline
+        torch_available = True
+    except Exception:
+        torch_available = False
+
+if torch_available:
+    try:
+        generator = pipeline("text-generation", model="distilgpt2")
+    except Exception:
+        torch_available = False
 
 def is_love_related(text):
     love_words = r"(حبك|احبك|تعشقيني|تعشقك|زوج|زواج|غرام|غار|تغارين|غيرة|غيوره|حبيبة|حبيبتي|غزل|تتزوجين|عرس|خطوبة|خطيب|خطيبة|عشيق|تعشقني|أحبك|حبيبي|حبيبة|زواجي|زوجتي|زوجك)"
@@ -39,8 +74,8 @@ def get_known_user_name(sender):
     return str(sender) if sender else ""
 
 def generate_hind_reply(prompt, is_love=False):
-    if not torch_available:
-        return "عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
+    if not torch_available or generator is None:
+        return "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
     persona = BASE_PERSONA
     if USER_PERSONA_DESC:
         persona += f" {USER_PERSONA_DESC}"
@@ -56,23 +91,20 @@ def generate_hind_reply(prompt, is_love=False):
     response = result[0]["generated_text"]
     return response
 
-# إنشاء مولد النص إذا كانت المكتبات متوفرة
-if torch_available:
-    generator = pipeline("text-generation", model="distilgpt2")
-else:
-    generator = None
-
 # أمر ai
 @l313l.ar_cmd(
     pattern="ai (.*)",
     command=("ai", "ذكاء اصطناعي"),
 )
 async def ai_cmd(event):
-    if not torch_available:
-        await event.reply("عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر.")
-        return
     prompt = event.pattern_match.group(1)
-    await event.reply(generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"])
+    reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
+    if torch_available and generator is not None:
+        try:
+            reply = generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"]
+        except Exception:
+            reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
+    await event.reply(reply)
 
 # أمر هند (رد تلقائي عند هند+سؤال أو هند سؤال) في أي مكان
 @l313l.ar_cmd(
