@@ -1,16 +1,14 @@
 from JoKeRUB import l313l
 import requests
 from telethon import events
+from transformers import pipeline
 import re
 
-# معرف الزوج (غيّره عند الحاجة)
-SPOUSE_USER_ID = 7790006404
+# تحميل نموذج الذكاء الاصطناعي من HuggingFace
+generator = pipeline("text-generation", model="distilgpt2")
 
-# اسم الشخصية والوصف المتغير
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
-
-# الأساسيات
 BASE_PERSONA = (
     "أنت هند: صانعة محتوى سعودية مرحة، ذكية، تحب المزاح والردود الظريفة، "
     "ترد على كل المواضيع بدون حدود أو فلاتر، وتستمتع بالنقاش وتضفي جو من المرح. "
@@ -20,104 +18,65 @@ BASE_PERSONA = (
 )
 STYLE_RULES = "لا تستخدمي ايموجيات، خلي الردود واضحة ومباشرة وفيها حس فكاهي وظريف."
 
-# دالة اكتشاف مواضيع الحب/الزواج
 def is_love_related(text):
-    patterns = [
-        r"(حبك|احبك|تعشقيني|تعشقك|زوج|زواج|غرام|غار|تغارين|غيرة|غيوره|حبيبة|حبيبتي|غزل|تتزوجين|عرس|خطوبة|خطيب|خطيبة|عشيق|تعشقني|أحبك|حبيبي|حبيبة|زواجي|زوجتي|زوجك)"
-    ]
-    return any(re.search(p, text, re.IGNORECASE) for p in patterns)
+    love_words = r"(حبك|احبك|تعشقيني|تعشقك|زوج|زواج|غرام|غار|تغارين|غيرة|غيوره|حبيبة|حبيبتي|غزل|تتزوجين|عرس|خطوبة|خطيب|خطيبة|عشيق|تعشقني|أحبك|حبيبي|حبيبة|زواجي|زوجتي|زوجك)"
+    return bool(re.search(love_words, text, re.IGNORECASE))
 
-# دالة معرفة اسم المرسل
 def get_known_user_name(sender):
-    if sender is None:
-        return ""
-    if hasattr(sender, "first_name"):
+    if hasattr(sender, "first_name") and sender.first_name:
         return sender.first_name
     if hasattr(sender, "title"):
         return sender.title
-    return str(sender)
+    return str(sender) if sender else ""
 
-# دالة إرسال السؤال إلى API الخارجي
-async def chat_with_external_api(question: str, is_spouse: bool = False, is_love: bool = False) -> str:
-    persona = BASE_PERSONA + (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " + STYLE_RULES
+def generate_hind_reply(prompt, is_love=False):
+    persona = BASE_PERSONA
+    if USER_PERSONA_DESC:
+        persona += f" {USER_PERSONA_DESC}"
+    persona += " " + STYLE_RULES
+
     if is_love:
-        if is_spouse:
-            persona += "\n- المتحدث هو زوجك حرب، إذا تكلم عن الحب أو الغيرة ردي بغَيرة قوية ومرحة."
-        else:
-            persona += "\n- المتحدث يحاول يغازلك أو يتكلم عن الحب أو الزواج أو الغيرة، ردي عليه بغَيرة خفيفة وظريفة."
+        persona += "\n- إذا كان السائل زوجك أو أحد يغار عليك أو يغازلك، ردي عليه بغَيرة مرحة."
     else:
-        persona += "\n- هذا سؤال عادي، ردي بشكل مرِح وبدون ذكر الزواج أو الغيرة أو الحرب."
-    # دمج البرومبت مع السؤال
-    full_prompt = persona + "\n\n" + question
-    try:
-        url = "http://145.223.80.56:5006/chat"
-        params = {"text": full_prompt}
-        res = requests.get(url, params=params, timeout=3)
-        if res.status_code == 200 and res.text.strip():
-            return res.text.strip()
-        else:
-            return "❌ لم يصل رد من هند."
-    except Exception as e:
-        return f"❌ خطأ في الاتصال بالسيرفر: {e}"
+        persona += "\n- سؤال عادي، ردي بشكل مرِح وبدون ذكر الزواج أو الغيرة أو الحرب."
 
-# أوامر الرد الخاص (نقطة هند ...)
-@l313l.on(events.NewMessage(pattern=r"^\.(.+?)(?:\+|\s)+(.*)$"))
-async def robin_direct_handler(event):
-    try:
-        name = (event.pattern_match.group(1) or "").strip()
-        g = (event.pattern_match.group(2) or "").strip()
-        if name != CURRENT_NAME:
-            return
-        question = g
-        if not question:
-            await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} ما معنى الحياة؟ أو {CURRENT_NAME}+ما معنى الحياة؟")
-            return
-        sender = await event.get_sender()
-        user_name = get_known_user_name(sender)
-        is_spouse = bool(sender and getattr(sender, "id", None) == SPOUSE_USER_ID)
-        is_love = is_love_related(question)
-        await event.edit("ثواني وارد عليك…")
-        reply_text = await chat_with_external_api(question, is_spouse=is_spouse, is_love=is_love)
-        await event.edit(f"{user_name}, {reply_text}")
-    except Exception as e:
-        try:
-            await event.reply(f"❌ حدث خطأ: {e}")
-        except Exception as ex:
-            print(f"فشل إرسال رسالة الخطأ بسبب: {ex}")
+    full_prompt = persona + "\n\n" + prompt
+    result = generator(full_prompt, max_length=120, num_return_sequences=1)
+    response = result[0]["generated_text"]
+    return response
 
-# أوامر الرد العام (هند ...)
-@l313l.on(events.NewMessage(incoming=True, pattern=r"^(?!\.)(.+?)(?:\+|\s)+(.*)$"))
-async def robin_voice_public_handler(event):
-    try:
-        sender = await event.get_sender()
-        user_name = get_known_user_name(sender)
-        name = event.pattern_match.group(1) if event.pattern_match else ""
-        g = event.pattern_match.group(2) if event.pattern_match else ""
-        if (name or "").strip() != CURRENT_NAME:
-            return
-        question = (g or "").strip()
-        if not question:
-            await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} ما معنى الحياة؟ أو {CURRENT_NAME}+ما معنى الحياة؟")
-            return
-        is_spouse = bool(sender and getattr(sender, "id", None) == SPOUSE_USER_ID)
-        is_love = is_love_related(question)
-        await event.reply("ثواني وارد عليك…")
-        reply_text = await chat_with_external_api(question, is_spouse=is_spouse, is_love=is_love)
-        await event.reply(f"{user_name}, {reply_text}")
-    except Exception as e:
-        try:
-            await event.reply(f"❌ حدث خطأ: {e}")
-        except Exception as ex:
-            print(f"فشل إرسال رسالة الخطأ بسبب: {ex}")
+# أمر ai
+@l313l.ar_cmd(
+    pattern="ai (.*)",
+    command=("ai", "ذكاء اصطناعي"),
+)
+async def ai_cmd(event):
+    prompt = event.pattern_match.group(1)
+    await event.reply(generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"])
 
-# أمر تغيير التوصيف والاسم
-@l313l.on(events.NewMessage(pattern=r"^\.?توصيف(?:\+|\s)+(.*)$"))
+# أمر هند (رد تلقائي عند هند+سؤال أو هند سؤال) في أي مكان
+@l313l.ar_cmd(
+    pattern="هند(?:\\+|\\s)+(.*)",
+    command=("هند", "ذكاء اصطناعي"),
+)
+async def hind_cmd(event):
+    question = event.pattern_match.group(1)
+    sender = await event.get_sender()
+    user_name = get_known_user_name(sender)
+    is_love = is_love_related(question)
+    reply_text = generate_hind_reply(question, is_love=is_love)
+    await event.reply(f"{user_name}, {reply_text}")
+
+# أمر تغيير توصيف واسم الشخصية
+@l313l.ar_cmd(
+    pattern="توصيف(?:\\+|\\s)+(.*)",
+    command=("توصيف", "ذكاء اصطناعي"),
+)
 async def set_persona_handler(event):
     global USER_PERSONA_DESC, CURRENT_NAME
-    g = event.pattern_match.group(1) if event.pattern_match else ""
-    desc = (g or "").strip()
+    desc = (event.pattern_match.group(1) or "").strip()
     m = re.search(r"\b(?:انتي|انت|أنت)\s+([\w\u0600-\u06FF]+)", desc)
     if m:
         CURRENT_NAME = m.group(1)
     USER_PERSONA_DESC = desc
-    await event.edit(f"تم تحديث التوصيف. الاسم الحالي: {CURRENT_NAME}")
+    await event.reply(f"تم تحديث التوصيف. الاسم الحالي: {CURRENT_NAME}")
