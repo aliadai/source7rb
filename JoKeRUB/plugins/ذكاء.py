@@ -103,7 +103,7 @@ def is_explicit_sex_request(text: str) -> bool:
     ]
     return any(k in t for k in keys)
 
-GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
+GEMINI_API_KEY = 'AIzaSyDYkFNuZkdbVYDzbeItx87kRmKka0JGbq4'
 
 UNKNOWN_RESPONSES = [
     "❌ لم أفهم سؤالك، يرجى التوضيح.",
