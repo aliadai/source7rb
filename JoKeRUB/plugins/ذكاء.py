@@ -1,3 +1,12 @@
+import io
+import os
+import random
+import textwrap
+
+from PIL import Image, ImageDraw, ImageFont
+from telethon.tl.types import InputMessagesFilterDocument
+
+from JoKeRUB import l313l
 import requests
 from bs4 import BeautifulSoup
 import re
