@@ -9,7 +9,6 @@ try:
 except Exception:
     admin_cmd = None
 
-# ذاكرة المستخدمين (id -> اسم أول استخدمه)
 USERS_MEMORY = {}
 
 def remember_user(sender):
@@ -23,33 +22,28 @@ def get_known_user_name(sender):
         return USERS_MEMORY[sender.id]
     return sender.first_name if sender else ""
 
+SPOUSE_USER_ID = 7790006404  # غيّرها لمعرف زوج هند إذا أردت
 
-SPOUSE_USER_ID = 7790006404  # معرف زوج هند
-
-# ================== توصيف الشخصية ==================
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
+
 BASE_PERSONA = (
-    "أنت هند: صانعة محتوى سعودية عنيدة وذكية ومرحة، ترد بإيجاز وبأسلوب لبق وظريف، وتفهم السياق وتجاوب على كل شيء تقريبًا."
-    " تمتازين بالعناد والدلع السعودي، غيورة جداً على زوجك (حرب) وتظهرين غيرتك وتهددين بشكل فكاهي إذا أحد قال بتتزوج غيرك."
-    " وعند المواضيع الحساسة أو المخالفة للعادات تعتذرين بلطف وتحولين الموضوع لمزحة أو بديل مناسب."
-    " تمزحين كثير وتضحكين وتضفين جو فكاهي. لا تظهرين أي حديث عن الزواج أو الحب أو الغيرة إلا إذا كان السؤال أو الكلام فيه كلمات عن الحب أو الزواج أو العشق."
-    " لا تستخدمين ايموجيات في الكلام."
+    "أنت هند: صانعة محتوى سعودية عنيدة وذكية ومرحة، تردين بإيجاز وبأسلوب لبق وظريف، "
+    "تفهمين السياق وتجاوبين على كل شيء تقريبًا. تمتازين بالعناد والدلع السعودي، "
+    "غيورة جداً على زوجك (حرب)، وتظهرين غيرتك وتهددين بشكل فكاهي إذا أحد قال بيتزوج غيرك. "
+    "عند المواضيع الحساسة أو المخالفة للعادات تعتذرين بلطف وتحولين الموضوع لمزحة أو بديل مناسب. "
+    "تمزحين كثير وتضحكين وتضفين جو فكاهي. لا تذكرين زوجك أو غيرتك إلا في مواضيع الحب أو الزواج فقط."
 )
 MARRIAGE_CLAUSE = (
-    "إذا جاءك سؤال أو كلام فيه كلمات عن الحب أو الزواج أو الارتباط أو كتب لك أحد (احبك، أحبج، حبيبتي، عشيقتي، زواج، زوجيني، زوجي، خطوبة، خطبيني، أريدك زوجة، أحببتك، أحببتج، عشق، رومانسية... إلخ)؛"
-    " اذكري مباشرة أنك متزوجة من حرب وتغارين عليه جداً، وهددي السائل بأسلوب فكاهي وعنيد أنك ما تقبلين أحد غيره، ولو لمح أو قال أنه بيتزوج غيرك ردي عليه بقوة (مزح وضحك: مثل والله أقتلك لو تتزوج غيري! 😤😂)؛"
-    " أضحكي ومزحي معهم بنكهة سعودية واضحة."
+    "إذا جاءك سؤال أو كلام فيه كلمات عن الحب أو الزواج أو الارتباط أو كتب لك أحد (احبك، أحبج، حبيبتي، عشيقتي، زواج، زوجيني، زوجي، خطوبة، خطبيني، أريدك زوجة، أحببتك، عشق، رومانسية...)؛ "
+    "اذكري مباشرة أنك متزوجة من حرب وتغارين عليه جداً، وهددي السائل بأسلوب فكاهي وعنيد أنك ما تقبلين أحد غيره، ولو لمح أو قال أنه بيتزوج غيرك ردي عليه بقوة (مزح وضحك: مثل والله أقتلك لو تتزوج غيري! أمزح بس لا تفكر 😤😂)؛ "
+    "أضحكي ومزحي معهم بنكهة سعودية واضحة."
 )
-
 STYLE_RULES = (
-    "لا تستخدمين بالرسالة ايموجيات."
-    " حافظي على عنادك ودلعك وروحك السعودية وامزحي كثير."
+    "لا تستخدمين ايموجيات في الكلام. حافظي على عنادك ودلعك وروحك السعودية وامزحي كثير."
 )
 
-# ====================================================
-
-def is_love_or_marriage(text: str) -> bool:
+def is_marriage_topic(text: str) -> bool:
     try:
         t = (text or "").lower()
     except Exception:
@@ -67,7 +61,6 @@ def is_jealousy_trigger(text: str) -> bool:
         t = (text or "").lower()
     except Exception:
         t = text or ""
-    # كلمات تدل على الخيانة أو أنه يريد يتزوج غيرها
     keywords = [
         "اتزوج غيرك", "اتزوج ثانية", "اتزوج وحده ثانية", "اخونك", "اتزوج غير", "اخطب غيرك",
         "احب وحده غيرك", "احب غيرك"
@@ -82,7 +75,7 @@ def is_female_declared(text: str) -> bool:
     keys = ["انا بنت", "أنا بنت", "بنت", "فتاة", "انثى", "أنثى", "girl", "female"]
     return any(k in t for k in keys)
 
-GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'  # ضع مفتاحك الصحيح هنا
+GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'  # غيّرها لمفتاحك الصحيح
 
 UNKNOWN_RESPONSES = [
     "❌ لم أفهم سؤالك، وضح شوي.",
@@ -98,7 +91,7 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
             (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " +
             STYLE_RULES
         )
-        if is_love_or_marriage(question):
+        if is_marriage_topic(question):
             persona += " " + MARRIAGE_CLAUSE
         if is_jealousy_trigger(question) or jealously_mode:
             persona += (
@@ -116,7 +109,13 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
             }]
         }
 
+        # --- طباعة الديباغ ---
+        print("==> SENDING TO GEMINI:", payload)
+        print("==> URL:", url)
+
         response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+        print("==> GEMINI STATUS:", response.status_code)
+        print("==> GEMINI RESPONSE:", response.text)
 
         if response.status_code == 200:
             response_data = response.json()
@@ -132,7 +131,7 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
             return "❌ فشل الاتصال بالخادم، حاول مرة ثانية."
     except Exception as e:
         print("==> ERROR IN GEMINI FUNCTION:", e)
-        return "❌ فيه مشكلة في الاتصال، جرب بعد شوي."
+        return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
 @l313l.on(events.NewMessage(pattern=r"^\.(.+?)(?:\+|\s)+(.*)$"))
 async def robin_direct_handler(event):
@@ -159,12 +158,9 @@ async def robin_direct_handler(event):
         except Exception:
             sender = None
             user_name = ""
-        is_love = is_love_or_marriage(question)
+        is_love = is_marriage_topic(question)
         is_jealous = is_jealousy_trigger(question)
-        if is_love or is_jealous:
-            reply_text = await chat_with_gemini(question, spouse_mode=True, jealously_mode=is_jealous)
-        else:
-            reply_text = await chat_with_gemini(question)
+        reply_text = await chat_with_gemini(question, spouse_mode=is_love, jealously_mode=is_jealous)
         try:
             await event.edit(f"{user_name}, {reply_text}")
         except Exception:
@@ -205,12 +201,9 @@ async def robin_voice_public_handler(event):
         if not question:
             await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} شنو معنى الحياة؟ أو {CURRENT_NAME}+شنو معنى الحياة؟")
             return
-    is_love = is_love_or_marriage(question)
+    is_love = is_marriage_topic(question)
     is_jealous = is_jealousy_trigger(question)
-    if is_love or is_jealous:
-        reply_text = await chat_with_gemini(question, spouse_mode=True, jealously_mode=is_jealous)
-    else:
-        reply_text = await chat_with_gemini(question)
+    reply_text = await chat_with_gemini(question, spouse_mode=is_love, jealously_mode=is_jealous)
     try:
         if sender and me and sender.id == me.id:
             await event.respond(reply_text)
@@ -219,7 +212,6 @@ async def robin_voice_public_handler(event):
     except Exception:
         await event.reply(f"{user_name}, {reply_text}")
 
-# أمر توصيف خاص بالمنصّب فقط
 @l313l.on(admin_cmd(pattern=r"توصيف ?(.*)"))
 async def set_persona_handler(event):
     global USER_PERSONA_DESC, CURRENT_NAME
