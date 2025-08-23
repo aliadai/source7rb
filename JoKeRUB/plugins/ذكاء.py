@@ -42,7 +42,7 @@ def get_known_user_name(sender):
 
 # دالة إرسال السؤال إلى Ollama (سيرفرك)
 async def chat_with_ollama(question: str, is_spouse: bool = False, is_love: bool = False) -> str:
-    url = "http://142.93.130.140:11434/api/generate"  # غيّر الـIP إذا تغير سيرفرك
+    url = "http://localhost:11434/api/generate"  # استخدم localhost إذا السورس على نفس السيرفر
     persona = BASE_PERSONA + (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " + STYLE_RULES
     # تحكم في الهوية حسب نوع السؤال
     if is_love:
@@ -59,7 +59,7 @@ async def chat_with_ollama(question: str, is_spouse: bool = False, is_love: bool
         persona += "\n- هذا سؤال عادي، ردي بشكل مرِح وبدون ذكر الزواج أو الغيرة أو الحرب."
 
     full_prompt = persona + "\n\n" + question
-    payload = {"model": "llama3", "prompt": full_prompt}
+    payload = {"model": "llama2", "prompt": full_prompt}
     try:
         res = requests.post(url, json=payload, timeout=60, stream=True)
         result = ""
