@@ -52,7 +52,7 @@ async def chat_with_external_api(question: str, is_spouse: bool = False, is_love
     try:
         url = "http://145.223.80.56:5006/chat"
         params = {"text": full_prompt}
-        res = requests.get(url, params=params, timeout=60)
+        res = requests.get(url, params=params, timeout=3)
         if res.status_code == 200 and res.text.strip():
             return res.text.strip()
         else:
