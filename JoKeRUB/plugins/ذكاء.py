@@ -7,6 +7,15 @@ except ImportError:
 
 import re
 
+from telethon import Button, events
+from telethon.events import CallbackQuery
+
+from l313l.razan.resources.assistant import *
+from l313l.razan.resources.mybot import *
+from JoKeRUB import l313l
+from ..core import check_owner
+from ..Config import Config
+
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
 BASE_PERSONA = (
