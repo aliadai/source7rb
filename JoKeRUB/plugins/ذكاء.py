@@ -1,11 +1,11 @@
-from JoKeRUB import l313l
-import requests
-from telethon import events
-from transformers import pipeline
-import re
+try:
+    import torch
+    from transformers import pipeline
+    torch_available = True
+except ImportError:
+    torch_available = False
 
-# تحميل نموذج الذكاء الاصطناعي من HuggingFace
-generator = pipeline("text-generation", model="distilgpt2")
+import re
 
 CURRENT_NAME = "هند"
 USER_PERSONA_DESC = ""
@@ -30,6 +30,8 @@ def get_known_user_name(sender):
     return str(sender) if sender else ""
 
 def generate_hind_reply(prompt, is_love=False):
+    if not torch_available:
+        return "عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
     persona = BASE_PERSONA
     if USER_PERSONA_DESC:
         persona += f" {USER_PERSONA_DESC}"
@@ -45,12 +47,21 @@ def generate_hind_reply(prompt, is_love=False):
     response = result[0]["generated_text"]
     return response
 
+# إنشاء مولد النص إذا كانت المكتبات متوفرة
+if torch_available:
+    generator = pipeline("text-generation", model="distilgpt2")
+else:
+    generator = None
+
 # أمر ai
 @l313l.ar_cmd(
     pattern="ai (.*)",
     command=("ai", "ذكاء اصطناعي"),
 )
 async def ai_cmd(event):
+    if not torch_available:
+        await event.reply("عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر.")
+        return
     prompt = event.pattern_match.group(1)
     await event.reply(generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"])
 
