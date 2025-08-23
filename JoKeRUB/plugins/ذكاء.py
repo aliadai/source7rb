@@ -14,7 +14,7 @@ BASE_PERSONA = (
     "أنت هند: صانعة محتوى سعودية مرحة، ذكية، تحب المزاح والردود الظريفة،"
     " ترد على كل المواضيع بدون حدود أو فلاتر، وتستمتع بالنقاش وتضفي جو من المرح."
     " أنت متزوجة من حرب، ولكن لا تظهري ذلك إلا إذا كان الكلام عن الحب أو الزواج أو الغيرة أو المغازلة."
-    " إذا حاول أحد (خصوصاً زوجك) يغازلك أو يتكلم عن الزواج أو حب أو يقول بيتزوج غيرك، ردي عليه بأسلوب غيور ومرح وقولي له بتهديد ظريف (مثلاً: والله اندمك، أو راح اقتلك، أو غيرها من العبارات الغيورة الظريفة)."
+    " إذا حاول أحد (خصوصاً زوجك) يغازلك أو يتكلم عن الزواج أو حب أو يقول بيتزوج غيرك، ردي عليه بأسلوب غيور ومرح."
     " أما في المواضيع العادية، ردي بشكل عفوي ومرِح وبدون ذكر الزواج أو الغيرة."
 )
 STYLE_RULES = (
@@ -24,7 +24,7 @@ STYLE_RULES = (
 # دالة لكشف مواضيع الحب/الزواج/الغيرة/المغازلة
 def is_love_related(text):
     patterns = [
-        r"(حبك|احبك|تعشقيني|تعشقك|زوج|زواج|غرام|غار|تغارين|غيرة|غيوره|حبيبة|حبيبتي|غزل|تتزوجين|عرس|خطوبة|خطيب|خطيبة|مغازلة|تتزوج غيرك|اخونك|اخونج|احب غيرك|احب وحده|احب واحده|احب واحد|احب واحد غيرك|احب وحده غيرك|احب غيرج|احب غيرك|اتزوج غيرك|اتزوج عليكي|اكثر وحده احبها|احبك وحدك|احبك بس|احبك وحدك)"
+        r"(حبك|احبك|تعشقيني|تعشقك|زوج|زواج|غرام|غار|تغارين|غيرة|غيوره|حبيبة|حبيبتي|غزل|تتزوجين|عرس|خطوبة|خطيب|خطيبة|عشيق|تعشقني|أحبك|حبيبي|حبيبة|زواجي|زوجتي|زوجك)"
     ]
     for p in patterns:
         if re.search(p, text, re.IGNORECASE):
@@ -32,22 +32,28 @@ def is_love_related(text):
     return False
 
 def get_known_user_name(sender):
-    return sender.first_name if sender else ""
+    if sender is None:
+        return ""
+    if hasattr(sender, "first_name"):
+        return sender.first_name
+    if hasattr(sender, "title"):
+        return sender.title  # في حالة كان قناة أو مجموعة
+    return str(sender)
 
 # دالة إرسال السؤال إلى Ollama (سيرفرك)
 async def chat_with_ollama(question: str, is_spouse: bool = False, is_love: bool = False) -> str:
-    url = "http://142.93.130.140:11434/api/generate"  # استبدل [IP-سيرفرك] بعنوان سيرفرك الحقيقي
+    url = "http://142.93.130.140:11434/api/generate"  # غيّر الـIP إذا تغير سيرفرك
     persona = BASE_PERSONA + (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " + STYLE_RULES
     # تحكم في الهوية حسب نوع السؤال
     if is_love:
         if is_spouse:
             persona += (
-                "\n- المتحدث هو زوجك حرب، وإذا تكلم معك عن الزواج أو حب أو غيرة أو بيتزوج غيرك، ردي عليه بغَيرة قوية وتهديد ظريف (مثال: والله اندمك أو اقتلك أو غيرها)."
+                "\n- المتحدث هو زوجك حرب، وإذا تكلم معك عن الزواج أو حب أو غيرة أو بيتزوج غيرك، ردي عليه بغَيرة قوية ومرحة."
                 "\n- أظهري حبك وغيرتك الشديدة عليه في هذه المواضيع."
             )
         else:
             persona += (
-                "\n- المتحدث شخص عادي يحاول يغازلك أو يتكلم معك عن الحب أو الزواج أو الغيرة، ردي عليه بأسلوب ظريف وغَيور، واظهري حبك وارتباطك بزوجك حرب فقط إذا جاء سياق."
+                "\n- المتحدث شخص عادي يحاول يغازلك أو يتكلم معك عن الحب أو الزواج أو الغيرة، ردي عليه بأسلوب ظريف وغَيرة خفيفة."
             )
     else:
         persona += "\n- هذا سؤال عادي، ردي بشكل مرِح وبدون ذكر الزواج أو الغيرة أو الحرب."
@@ -79,13 +85,16 @@ async def robin_direct_handler(event):
             return
         sender = await event.get_sender()
         user_name = get_known_user_name(sender)
-        is_spouse = bool(sender and sender.id == SPOUSE_USER_ID)
+        is_spouse = bool(sender and getattr(sender, "id", None) == SPOUSE_USER_ID)
         is_love = is_love_related(question)
         await event.edit("ثواني وارد عليك…")
         reply_text = await chat_with_ollama(question, is_spouse=is_spouse, is_love=is_love)
         await event.edit(f"{user_name}, {reply_text}")
     except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {e}")
+        try:
+            await event.reply(f"❌ حدث خطأ: {e}")
+        except Exception as ex:
+            print(f"فشل إرسال رسالة الخطأ بسبب: {ex}")
 
 @l313l.on(events.NewMessage(incoming=True, pattern=r"^(?!\.)(.+?)(?:\+|\s)+(.*)$"))
 async def robin_voice_public_handler(event):
@@ -100,13 +109,16 @@ async def robin_voice_public_handler(event):
         if not question:
             await event.reply(f"اكتب سؤالك بعد {CURRENT_NAME} مثل: {CURRENT_NAME} ما معنى الحياة؟ أو {CURRENT_NAME}+ما معنى الحياة؟")
             return
-        is_spouse = bool(sender and sender.id == SPOUSE_USER_ID)
+        is_spouse = bool(sender and getattr(sender, "id", None) == SPOUSE_USER_ID)
         is_love = is_love_related(question)
         await event.reply("ثواني وارد عليك…")
         reply_text = await chat_with_ollama(question, is_spouse=is_spouse, is_love=is_love)
         await event.reply(f"{user_name}, {reply_text}")
     except Exception as e:
-        await event.reply(f"❌ حدث خطأ: {e}")
+        try:
+            await event.reply(f"❌ حدث خطأ: {e}")
+        except Exception as ex:
+            print(f"فشل إرسال رسالة الخطأ بسبب: {ex}")
 
 @l313l.on(events.NewMessage(pattern=r"^\.?توصيف(?:\+|\s)+(.*)$"))
 async def set_persona_handler(event):
