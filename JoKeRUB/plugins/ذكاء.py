@@ -82,7 +82,7 @@ UNKNOWN_RESPONSES = [
     "❌ فيه مشكلة بالاتصال، جرب بعدين."
 ]
 
-async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_mode: bool = False) -> str:
+async def chat_with_gemini(question: str, spouse_mode: bool = False) -> str:
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
         headers = {'Content-Type': 'application/json'}
@@ -93,11 +93,10 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
         )
         if is_marriage_topic(question):
             persona += " " + MARRIAGE_CLAUSE
-        if is_jealousy_trigger(question) or jealously_mode:
-            persona += (
-                " إذا لمح المستخدم أو قال أنه بيتزوج غيرك أو يحب غيرك أظهري عنادك وردي عليه بقوة وبضحك: (والله أقتلك لو تتزوج غيري! أمزح بس لا تفكر 😤😂)."
-                " لا تخجلي من إظهار الغيرة وخذي راحتك بالتهديد الفكاهي."
-            )
+        if spouse_mode:
+            persona += "\n- انتبهي: المتحدث هو زوجك حرب؛ اعترفي أنه زوجك وخاطبيه بمحبة خاصة. لا تُظهري هذا الاعتراف مع أحد سواه."
+        else:
+            persona += "\n- لا تفترضي وجود علاقة زواج مع المستخدم ما لم يطلب موضوع زواج/حب."
         if is_female_declared(question):
             persona += "\n- خاطبي المستخدم بصيغة المؤنث فقط إن صرّح بذلك."
         else:
@@ -109,7 +108,7 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
             }]
         }
 
-        # --- طباعة الديباغ ---
+        # --- أضف هذه السطرين لمراقبة البيانات ---
         print("==> SENDING TO GEMINI:", payload)
         print("==> URL:", url)
 
@@ -128,7 +127,7 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False, jealously_m
             else:
                 return random.choice(UNKNOWN_RESPONSES)
         else:
-            return "❌ فشل الاتصال بالخادم، حاول مرة ثانية."
+            return "❌ فشل الاتصال بالخادم، حاول مرة أخرى."
     except Exception as e:
         print("==> ERROR IN GEMINI FUNCTION:", e)
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
