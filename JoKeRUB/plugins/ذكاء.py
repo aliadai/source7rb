@@ -28,11 +28,11 @@ def try_install_torch_cpu():
                 "--index-url", "https://download.pytorch.org/whl/cpu"
             ])
         except Exception as e:
-            pass
+            print(f"Error installing {pkg}: {e}")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "transformers"])
     except Exception as e:
-        pass
+        print(f"Error installing transformers: {e}")
 
 torch_available = False
 generator = None
@@ -53,7 +53,8 @@ except ImportError:
 if torch_available:
     try:
         generator = pipeline("text-generation", model="distilgpt2")
-    except Exception:
+    except Exception as e:
+        print(f"Error loading model: {e}")
         generator = None
         torch_available = False
 
@@ -83,10 +84,25 @@ def generate_hind_reply(prompt, is_love=False):
 
     full_prompt = persona + "\n\n" + prompt
     try:
-        result = generator(full_prompt, max_length=120, num_return_sequences=1)
-        response = result[0]["generated_text"]
+        result = generator(
+            full_prompt,
+            max_new_tokens=120,
+            num_return_sequences=1,
+            truncation=True,
+            pad_token_id=50256
+        )
+        generated = result[0]["generated_text"]
+        # إزالة البرومبت من بداية النص المولّد
+        if generated.startswith(full_prompt):
+            response = generated[len(full_prompt):].strip()
+        else:
+            response = generated.strip()
+        # لو الرد فاضي رجّع رسالة خطأ ودية
+        if not response:
+            return "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
         return response
-    except Exception:
+    except Exception as e:
+        print("AI error:", e)
         return "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
 
 # أمر ai
@@ -100,8 +116,22 @@ async def ai_cmd(event):
         await event.reply("- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر.")
         return
     try:
-        reply = generator(prompt, max_length=120, num_return_sequences=1)[0]["generated_text"]
-    except Exception:
+        result = generator(
+            prompt,
+            max_new_tokens=120,
+            num_return_sequences=1,
+            truncation=True,
+            pad_token_id=50256
+        )
+        generated = result[0]["generated_text"]
+        if generated.startswith(prompt):
+            reply = generated[len(prompt):].strip()
+        else:
+            reply = generated.strip()
+        if not reply:
+            reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
+    except Exception as e:
+        print("AI error:", e)
         reply = "- 7r𝐁 ∘, عذراً، الذكاء الاصطناعي غير متوفر حالياً. يرجى تثبيت مكتبة torch و transformers على السيرفر."
     await event.reply(reply)
 
