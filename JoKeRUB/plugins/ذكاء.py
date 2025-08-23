@@ -136,7 +136,13 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False) -> str:
             }]
         }
 
+        # --- أضف هذه السطرين لمراقبة البيانات ---
+        print("==> SENDING TO GEMINI:", payload)
+        print("==> URL:", url)
+
         response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+        print("==> GEMINI STATUS:", response.status_code)
+        print("==> GEMINI RESPONSE:", response.text)
 
         if response.status_code == 200:
             response_data = response.json()
@@ -150,7 +156,8 @@ async def chat_with_gemini(question: str, spouse_mode: bool = False) -> str:
                 return random.choice(UNKNOWN_RESPONSES)
         else:
             return "❌ فشل الاتصال بالخادم، حاول مرة أخرى."
-    except requests.exceptions.RequestException:
+    except Exception as e:
+        print("==> ERROR IN GEMINI FUNCTION:", e)
         return "❌ هناك مشكلة في الاتصال، حاول لاحقًا."
 
 @l313l.on(events.NewMessage(pattern=r"^\.(.+?)(?:\+|\s)+(.*)$"))
