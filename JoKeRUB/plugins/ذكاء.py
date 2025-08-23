@@ -36,7 +36,7 @@ def get_known_user_name(sender):
 
 # دالة إرسال السؤال إلى Ollama (سيرفرك)
 async def chat_with_ollama(question: str, is_spouse: bool = False, is_love: bool = False) -> str:
-    url = "http://[142.93.130.140]:11434/api/generate"  # استبدل [IP-سيرفرك] بعنوان سيرفرك الحقيقي
+    url = "http://142.93.130.140:11434/api/generate"  # استبدل [IP-سيرفرك] بعنوان سيرفرك الحقيقي
     persona = BASE_PERSONA + (" " + USER_PERSONA_DESC if USER_PERSONA_DESC else "") + " " + STYLE_RULES
     # تحكم في الهوية حسب نوع السؤال
     if is_love:
