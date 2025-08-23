@@ -1,3 +1,9 @@
+import asyncio
+from telethon import events
+from JoKeRUB import l313l
+import random
+from ..core.managers import edit_or_reply
+from ..helpers.utils import _format
 import sys
 import subprocess
 import re
