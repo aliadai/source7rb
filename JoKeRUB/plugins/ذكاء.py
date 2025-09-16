@@ -406,6 +406,12 @@ async def auto_ai_reply(event):
 # حدث يستمع للرسائل في المجموعات مع كلمة "حرب"
 @l313l.on(events.NewMessage(incoming=True))
 async def group_reply(event):
+    global AI_ENABLED
+    
+    # التحقق من أن الذكاء مفعل
+    if not AI_ENABLED:
+        return
+        
     try:
         # تجاهل الرسائل من البوت نفسه
         if event.is_self:
@@ -415,20 +421,36 @@ async def group_reply(event):
         if event.text and (event.text.startswith('.') or event.text.startswith('/')):
             return
         
+        # طباعة معلومات للتشخيص
+        print(f"رسالة جديدة: {event.text}")
+        print(f"هل هي مجموعة؟ {event.is_group}")
+        print(f"هل الذكاء مفعل؟ {AI_ENABLED}")
+        
         # فقط في المجموعات وإذا كان الذكاء مفعل والرسالة تبدأ بـ "حرب"
-        if event.is_group and AI_ENABLED and event.text and event.text.strip().startswith("حرب"):
+        if event.is_group and event.text and event.text.strip().startswith("حرب"):
+            print("تم اكتشاف كلمة حرب في المجموعة!")
+            
             # استخراج السؤال بعد كلمة "حرب"
             question = event.text.strip()[3:].strip()  # إزالة "حرب" والمسافات
+            print(f"السؤال المستخرج: '{question}'")
             
             if question:  # إذا كان هناك سؤال بعد "حرب"
+                print("جاري الحصول على رد من الذكاء الاصطناعي...")
+                
                 # الحصول على رد من الذكاء الاصطناعي للمجموعات
                 ai_response = await chat_with_gemini_groups(question)
+                print(f"الرد المولد: {ai_response}")
                 
                 # إضافة تأخير ثانيتين لجعل الرد يبدو طبيعي
                 await asyncio.sleep(2)
                 
                 # إرسال الرد
                 await event.reply(ai_response)
+                print("تم إرسال الرد!")
+            else:
+                print("لا يوجد سؤال بعد كلمة حرب")
         
     except Exception as e:
         print(f"خطأ في الرد على المجموعات: {e}")
+        import traceback
+        traceback.print_exc()
