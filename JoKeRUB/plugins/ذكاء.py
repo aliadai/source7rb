@@ -6,6 +6,7 @@ from JoKeRUB import l313l
 from ..Config import Config
 from ..core.managers import edit_or_reply
 from ..helpers.utils import admin_cmd
+from ..helpers import CMD_HELP
 import requests
 from bs4 import BeautifulSoup
 
@@ -108,7 +109,7 @@ def get_store_info_response(message_text):
     
     return store_info
 
-@l313l.on(admin_cmd(pattern=r"تفعيل الذكاء"))
+@l313l.on(admin_cmd(pattern="تفعيل الذكاء"))
 async def enable_ai(event):
     """
     أمر تفعيل الذكاء الاصطناعي
@@ -117,7 +118,7 @@ async def enable_ai(event):
     AI_ENABLED = True
     await edit_or_reply(event, "✅ تم تفعيل الذكاء الاصطناعي للرد على الرسائل الخاصة")
 
-@l313l.on(admin_cmd(pattern=r"تعطيل الذكاء"))
+@l313l.on(admin_cmd(pattern="تعطيل الذكاء"))
 async def disable_ai(event):
     """
     أمر تعطيل الذكاء الاصطناعي
@@ -126,7 +127,7 @@ async def disable_ai(event):
     AI_ENABLED = False
     await edit_or_reply(event, "❌ تم تعطيل الذكاء الاصطناعي")
 
-@l313l.on(admin_cmd(pattern=r"حالة الذكاء"))
+@l313l.on(admin_cmd(pattern="حالة الذكاء"))
 async def ai_status(event):
     """
     أمر معرفة حالة الذكاء الاصطناعي
@@ -175,7 +176,7 @@ async def auto_ai_reply(event):
         print(f"خطأ في الرد التلقائي: {e}")
 
 # أوامر إضافية للتحكم في الذكاء
-@l313l.on(admin_cmd(pattern=r"ذكاء ?(.*)"))
+@l313l.on(admin_cmd(pattern="ذكاء ?(.*)"))
 async def manual_ai(event):
     """
     أمر للحصول على رد من الذكاء الاصطناعي يدوياً
@@ -190,33 +191,6 @@ async def manual_ai(event):
         await edit_or_reply(event, response)
     except Exception as e:
         await edit_or_reply(event, f"خطأ: {str(e)}")
-
-# أمر مخفي للذكاء بدون كتابة "ذكاء" - فقط في الخاص
-@l313l.on(admin_cmd(pattern=r"(.+)", outgoing=True))
-async def hidden_ai(event):
-    """
-    رد تلقائي على أي رسالة من المالك في الخاص فقط
-    """
-    global AI_ENABLED
-    
-    # التحقق من أن الذكاء مفعل
-    if not AI_ENABLED:
-        return
-    
-    # التحقق من أن الرسالة في الخاص وليس في مجموعة أو قناة
-    if not isinstance(event.peer_id, PeerUser):
-        return
-    
-    # تجاهل الأوامر المعروفة
-    message_text = event.message.text
-    if message_text.startswith(('.تفعيل', '.تعطيل', '.حالة', '.ذكاء')):
-        return
-    
-    try:
-        response = get_ai_response(message_text)
-        await edit_or_reply(event, response)
-    except Exception as e:
-        print(f"خطأ في الرد المخفي: {e}")
 
 # معلومات الإضافة
 CMD_HELP.update({
@@ -238,3 +212,4 @@ CMD_HELP.update({
 
 **ملاحظة:** الذكاء يرد فقط على الرسائل الخاصة وليس في المجموعات"""
 })
+
