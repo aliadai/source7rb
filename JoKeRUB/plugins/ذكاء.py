@@ -1,4 +1,3 @@
-from JoKeRUB import l313l
 import requests
 import json
 import random
@@ -6,11 +5,22 @@ import asyncio
 from telethon import events
 from telethon.tl.types import PeerUser
 
+from JoKeRUB import l313l
+from ..core.managers import edit_or_reply
+
 # مفتاح API الخاص بـ Gemini
 GEMINI_API_KEY = 'AIzaSyC9F7-JJ2jHd4SA4Qo90AwzKhrgHBpPn0A'
 
-# متغير لحفظ حالة الذكاء الاصطناعي
-AI_ENABLED = False
+# التحقق من صحة API Key
+if not GEMINI_API_KEY or GEMINI_API_KEY == 'YOUR_API_KEY_HERE':
+    print("[ERROR] يرجى إدخال مفتاح API صحيح للـ Gemini")
+    exit(1)
+
+plugin_category = "extra"
+
+# متغيرات لحفظ حالة الذكاء الاصطناعي
+AI_PRIVATE_ENABLED = False  # للرسائل الخاصة
+AI_GROUP_ENABLED = False    # للمجموعات
 
 # ردود افتراضية في حال حدوث خطأ
 UNKNOWN_RESPONSES = [
@@ -354,41 +364,99 @@ async def chat_with_gemini_groups(question: str) -> str:
     except requests.exceptions.RequestException:
         return random.choice(UNKNOWN_RESPONSES)
 
-# حدث يستمع للأمر ".تفعيل الذكاء"
-@l313l.on(events.NewMessage(pattern=r"^\.تفعيل الذكاء"))
-async def enable_ai(event):
-    global AI_ENABLED
-    AI_ENABLED = True
-    await event.reply("✅ تم تفعيل الذكاء الاصطناعي للرد على الرسائل الخاصة")
+# حدث يستمع للأمر ".تفعيل الذكاء خاص"
+@l313l.ar_cmd(
+    pattern="تفعيل الذكاء خاص$",
+    command=("تفعيل الذكاء خاص", plugin_category),
+)
+async def enable_private_ai(event):
+    "تفعيل الذكاء الاصطناعي للرسائل الخاصة"
+    try:
+        global AI_PRIVATE_ENABLED
+        AI_PRIVATE_ENABLED = True
+        await edit_or_reply(event, "✅ تم تفعيل الذكاء الاصطناعي للرد على الرسائل الخاصة")
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في تفعيل الذكاء الخاص")
 
-# حدث يستمع للأمر ".تعطيل الذكاء"
-@l313l.on(events.NewMessage(pattern=r"^\.تعطيل الذكاء"))
-async def disable_ai(event):
-    global AI_ENABLED
-    AI_ENABLED = False
-    await event.reply("❌ تم تعطيل الذكاء الاصطناعي")
+# حدث يستمع للأمر ".تعطيل الذكاء خاص"
+@l313l.ar_cmd(
+    pattern="تعطيل الذكاء خاص$",
+    command=("تعطيل الذكاء خاص", plugin_category),
+)
+async def disable_private_ai(event):
+    "تعطيل الذكاء الاصطناعي للرسائل الخاصة"
+    try:
+        global AI_PRIVATE_ENABLED
+        AI_PRIVATE_ENABLED = False
+        await edit_or_reply(event, "❌ تم تعطيل الذكاء الاصطناعي للرسائل الخاصة")
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في تعطيل الذكاء الخاص")
+
+# حدث يستمع للأمر ".تفعيل الذكاء قروب"
+@l313l.ar_cmd(
+    pattern="تفعيل الذكاء قروب$",
+    command=("تفعيل الذكاء قروب", plugin_category),
+)
+async def enable_group_ai(event):
+    "تفعيل الذكاء الاصطناعي للمجموعات"
+    try:
+        global AI_GROUP_ENABLED
+        AI_GROUP_ENABLED = True
+        await edit_or_reply(event, "✅ تم تفعيل الذكاء الاصطناعي للرد على المجموعات (حرب+سؤال)")
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في تفعيل الذكاء للمجموعات")
+
+# حدث يستمع للأمر ".تعطيل الذكاء قروب"
+@l313l.ar_cmd(
+    pattern="تعطيل الذكاء قروب$",
+    command=("تعطيل الذكاء قروب", plugin_category),
+)
+async def disable_group_ai(event):
+    "تعطيل الذكاء الاصطناعي للمجموعات"
+    try:
+        global AI_GROUP_ENABLED
+        AI_GROUP_ENABLED = False
+        await edit_or_reply(event, "❌ تم تعطيل الذكاء الاصطناعي للمجموعات")
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في تعطيل الذكاء للمجموعات")
 
 # حدث يستمع للأمر ".حالة الذكاء"
-@l313l.on(events.NewMessage(pattern=r"^\.حالة الذكاء"))
+@l313l.ar_cmd(
+    pattern="حالة الذكاء$",
+    command=("حالة الذكاء", plugin_category),
+)
 async def ai_status(event):
-    status = "مفعل ✅" if AI_ENABLED else "معطل ❌"
-    await event.reply(f"حالة الذكاء الاصطناعي: {status}")
+    "عرض حالة الذكاء الاصطناعي"
+    try:
+        private_status = "مفعل ✅" if AI_PRIVATE_ENABLED else "معطل ❌"
+        group_status = "مفعل ✅" if AI_GROUP_ENABLED else "معطل ❌"
+        status_message = f"📊 حالة الذكاء الاصطناعي:\n\n🔹 الرسائل الخاصة: {private_status}\n🔹 المجموعات: {group_status}"
+        await edit_or_reply(event, status_message)
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في فحص الحالة")
 
-# حدث يستمع للأمر ".ذكاء + السؤال"
-@l313l.on(events.NewMessage(pattern=r"^\.ذكاء (.+)"))
-async def ai_handler(event):
-    question = event.pattern_match.group(1)
-    await event.reply("🤖 جارٍ معالجة سؤالك...")
-    response = await chat_with_gemini(question)
-    await event.reply(response)
+# حدث يستمع للأمر ".ذكاء" متبوعاً بسؤال
+@l313l.ar_cmd(
+    pattern="ذكاء (.+)",
+    command=("ذكاء", plugin_category),
+)
+async def manual_ai(event):
+    "سؤال يدوي للذكاء الاصطناعي"
+    try:
+        question = event.pattern_match.group(1)
+        catevent = await edit_or_reply(event, "🤖 جارٍ معالجة سؤالك...")
+        response = await chat_with_gemini(question)
+        await catevent.edit(response)
+    except Exception as e:
+        await edit_or_reply(event, "❌ حدث خطأ في معالجة السؤال")
 
 # الرد التلقائي على الرسائل الخاصة
 @l313l.on(events.NewMessage(incoming=True))
 async def auto_ai_reply(event):
-    global AI_ENABLED
+    global AI_PRIVATE_ENABLED
     
-    # التحقق من أن الذكاء مفعل
-    if not AI_ENABLED:
+    # التحقق من أن الذكاء الخاص مفعل
+    if not AI_PRIVATE_ENABLED:
         return
         
     try:
@@ -416,18 +484,20 @@ async def auto_ai_reply(event):
             await event.reply(ai_response)
         
     except Exception as e:
-        print(f"خطأ في الرد التلقائي: {e}")
+        print(f"[ERROR] خطأ في الرد التلقائي: {e}")
+        import traceback
+        traceback.print_exc()
 
 # حدث يستمع للرسائل في المجموعات مع كلمة "حرب"
 @l313l.on(events.NewMessage(incoming=True))
 async def group_reply(event):
-    global AI_ENABLED
+    global AI_GROUP_ENABLED
     
-    # التحقق من أن الذكاء مفعل
-    if not AI_ENABLED:
-        return
-        
     try:
+        # التحقق من أن الذكاء للمجموعات مفعل
+        if not AI_GROUP_ENABLED:
+            return
+        
         # تجاهل الرسائل من البوت نفسه
         if event.is_self:
             return
@@ -452,6 +522,4 @@ async def group_reply(event):
                 await event.reply(ai_response)
         
     except Exception as e:
-        print(f"خطأ في الرد على المجموعات: {e}")
-        import traceback
-        traceback.print_exc()
+        pass
