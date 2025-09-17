@@ -506,20 +506,29 @@ async def group_reply(event):
         if event.text and (event.text.startswith('.') or event.text.startswith('/')):
             return
         
-        # فقط في المجموعات والرسالة تبدأ بـ "حرب"
-        if event.is_group and event.text and event.text.strip().startswith("حرب"):
-            # استخراج السؤال بعد كلمة "حرب"
-            question = event.text.strip()[3:].strip()  # إزالة "حرب" والمسافات
+        # فقط في المجموعات والرسالة تحتوي على "حرب"
+        if event.is_group and event.text:
+            message_text = event.text.strip()
             
-            if question:  # إذا كان هناك سؤال بعد "حرب"
-                # الحصول على رد من الذكاء الاصطناعي للمجموعات
-                ai_response = await chat_with_gemini_groups(question)
+            # البحث عن كلمة "حرب" في أي مكان في الرسالة
+            if "حرب" in message_text:
+                # محاولة استخراج السؤال بعد كلمة "حرب"
+                if message_text.startswith("حرب"):
+                    # إذا بدأت بـ "حرب"
+                    question = message_text[3:].strip()
+                else:
+                    # إذا كانت "حرب" في وسط الرسالة، خذ كل الرسالة كسؤال
+                    question = message_text
                 
-                # إضافة تأخير ثانيتين لجعل الرد يبدو طبيعي
-                await asyncio.sleep(2)
-                
-                # إرسال الرد
-                await event.reply(ai_response)
+                if question:  # إذا كان هناك سؤال
+                    # الحصول على رد من الذكاء الاصطناعي للمجموعات
+                    ai_response = await chat_with_gemini_groups(question)
+                    
+                    # إضافة تأخير ثانيتين لجعل الرد يبدو طبيعي
+                    await asyncio.sleep(2)
+                    
+                    # إرسال الرد
+                    await event.reply(ai_response)
         
     except Exception as e:
         pass
