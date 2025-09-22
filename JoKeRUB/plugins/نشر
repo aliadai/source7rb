@@ -53,13 +53,15 @@ async def _publish_loop(client, chat_id, message, count, delay):
         # do not clear spamwork here; other operations may still use it
         pass
 
-@l313l.ar_cmd(pattern="^(?:\.|)?انشر(?:\s|$)(.*)")
+@l313l.ar_cmd(pattern="^(?:\.|)?(?:انشر|نشر)(?:\s|$)(.*)")
 async def publish_handler(event):
     """
     Patterns supported:
     - Reply + targets: انشر <count> <seconds> <target...>
     - Reply only (no targets): انشر <count> <seconds>
-    - No reply: انشر <count> <seconds> <message text>
+    - No reply (current chat): انشر <count> <seconds> <message text>
+    - No reply (targets + message): انشر <count> <seconds> <target...> <message text>
+      مثال: .نشر 5 6 -1002813200347 احبك
     """
     try:
         # Extract the rest of the text after command
@@ -113,12 +115,67 @@ async def publish_handler(event):
             await _publish_loop(client, event.chat_id, reply, count, seconds)
             return
     else:
-        # No reply -> tail must be message text
+        # No reply -> tail can be either plain message (current chat)
+        # or one/more targets followed by a message to send to those targets.
         if not tail:
-            return await edit_delete(event, "⌔∮ يرجى كتابة النص بعد العدد والوقت أو الرد على رسالة", 7)
-        await event.delete()
-        await _publish_loop(client, event.chat_id, tail, count, seconds)
-        return
+            return await edit_delete(
+                event,
+                "⌔∮ لا يوجد رد على رسالة ولا نص لإرساله.\n"
+                "- للارسال نص هنا: انشر <عدد> <ثواني> <نص>\n"
+                "- للارسال الى هدف: انشر <عدد> <ثواني> <@يوزر/رابط/-100/ID> <نص>",
+                9,
+            )
+
+        def _is_target(token: str) -> bool:
+            token = token.strip()
+            return (
+                token.startswith("@")
+                or token.startswith("https://t.me/")
+                or token.startswith("-100")
+                or token.isdigit()
+            )
+
+        tokens = tail.split()
+        if _is_target(tokens[0]):
+            # collect consecutive targets at the beginning
+            i = 0
+            targets = []
+            while i < len(tokens) and _is_target(tokens[i]):
+                targets.append(tokens[i])
+                i += 1
+            message_text = " ".join(tokens[i:]).strip()
+            if not message_text:
+                return await edit_delete(
+                    event,
+                    "⌔∮ يرجى إضافة نص بعد الأهداف لإرساله.\n"
+                    "مثال: .نشر 5 6 @group1 @group2 رسالة الاختبار",
+                    9,
+                )
+            await event.delete()
+            ok = 0
+            bad = []
+            for t in targets:
+                chat_id = await _resolve_chat_id(client, t)
+                if chat_id is None:
+                    bad.append(t)
+                    continue
+                await _publish_loop(client, chat_id, message_text, count, seconds)
+                ok += 1
+                await asyncio.sleep(1)
+            if bad and ok:
+                return await edit_or_reply(
+                    event,
+                    f"**᯽︙ تم النشر بنجاح في {ok} هدف ✅**\n**᯽︙ تعذر النشر في:** `{', '.join(bad)}`",
+                )
+            elif ok:
+                return
+            else:
+                return await edit_or_reply(event, "**᯽︙ تعذر العثور على أي هدف صالح للنشر**")
+        else:
+            # plain message in current chat
+            await event.delete()
+            await _publish_loop(client, event.chat_id, tail, count, seconds)
+            return
 
 @l313l.ar_cmd(pattern="^(?:\.|)?وكف نشر$")
 async def stop_publish_handler(event):
