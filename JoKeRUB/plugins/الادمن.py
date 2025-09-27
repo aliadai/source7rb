@@ -363,3 +363,75 @@ async def watcher(event):
             await event.delete()
         except Exception as e:
             LOGS.info(str(e))
+
+from asyncio import sleep
+
+# =============== أوامر النشر التلقائي ===============
+
+final = False
+
+@l313l.ar_cmd(
+    pattern=r"نشر (\d+)$",
+    command=("نشر", plugin_category),
+    info={
+        "الاستخدام": "لنشر رسالة في كل القروبات مع فاصل زمني.",
+        "الشرح": "رد على الرسالة التي تريد نشرها ثم اكتب .نشر <عدد الثواني بين كل قروب والثاني>",
+        "الامر": [
+            "{tr}نشر 10",
+        ],
+    },
+    groups_only=False,
+    require_owner=True,
+)
+async def final_handler(event):
+    global final
+    me = await event.client.get_me()
+    if event.sender_id != me.id:
+        return await event.reply("- ليس لديك صلاحية استخدام هذا الأمر!")
+    await event.delete()
+    seconds_str = event.pattern_match.group(1)
+    try:
+        sleeptimet = int(seconds_str)
+    except ValueError:
+        return await event.reply("- يجب كتابة رقم صحيح للوقت بالثواني!")
+    message = await event.get_reply_message()
+    if not message:
+        return await event.reply("- يجب الرد على الرسالة التي تريد نشرها!")
+    final = True
+    await event.reply(f"- بدأ النشر في المجموعات بفاصل {sleeptimet} ثانية. أرسل `.ايقاف_النشر` لإيقاف عملية النشر!")
+    await final_allnshr(event, sleeptimet, message)
+
+async def final_allnshr(event, sleeptimet, message):
+    global final
+    async for dialog in event.client.iter_dialogs():
+        if not final:
+            break
+        if dialog.is_group:
+            try:
+                await event.client.send_message(dialog.id, message)
+                await sleep(sleeptimet)
+            except Exception as e:
+                print(f"- خطأ في الإرسال الى المجموعة {dialog.name}: {e}")
+
+@l313l.ar_cmd(
+    pattern=r"ايقاف_النشر$",
+    command=("ايقاف_النشر", plugin_category),
+    info={
+        "الاستخدام": "ايقاف عملية النشر التلقائي في القروبات.",
+        "الشرح": "اكتب .ايقاف_النشر لايقاف النشر في كل القروبات.",
+        "الامر": [
+            "{tr}ايقاف_النشر",
+        ],
+    },
+    groups_only=False,
+    require_owner=True,
+)
+async def stop_handler(event):
+    global final
+    me = await event.client.get_me()
+    if event.sender_id != me.id:
+        return await event.reply("- ليس لديك صلاحية استخدام هذا الأمر!")
+    final = False
+    await event.reply("- تم ايقاف عملية النشر!")
+
+# =============== نهاية أوامر النشر التلقائي ===============
