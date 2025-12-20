@@ -11,19 +11,20 @@ from ..sql_helper.globals import gvarstatus
 
 from JoKeRUB import l313l
 from JoKeRUB.core.logger import logging
-
+from telethon.extensions import markdown, html
+from telethon import types
+from telethon.tl.types import MessageEntityCustomEmoji
 from ..Config import Config
-from ..core.managers import edit_or_reply
+from ..core.managers import edit_or_reply, edit_delete
 from ..helpers import get_user_from_event, reply_id
 from . import spamwatch
-from addons import process_custom_emojis_ids
-from xtelethon import CustomParseMode
+from .emoji_utils import CustomParseMode, process_custom_emojis_ids
 
 JEP_EM = Config.ID_EM or " •❃ "
 ID_EDIT = gvarstatus("ID_ET") or "ايدي"
 
 plugin_category = "utils"
-LOGS = logging.getLogger(__name__)
+LOGS = logging.getLogger(name)
  
 # مطورين السورس
 DEV_IDS = {7182427468, 7790006404}
@@ -105,13 +106,13 @@ async def fetch_info(replied_user, event):
     # 💎 5215703418340908982
     # 🛠 5215392879320505675
     caption = """
-**معلومات المستخدم** [🚬](emoji/5321467619365125179)
+معلومات المستخدم [🚬](emoji/5321467619365125179)
 ——————————
-**الاسم:** 『[{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)』
-**المعرف:** 『{username} [✔️](emoji/5220219696711736568)』
-**الايدي:** 『`{user_id}` [💎](emoji/5215703418340908982)』
-**الرتبَه:** 『{rotbat} [🛠](emoji/5215392879320505675)』
-**النبذة:** 『{user_bio} [🚬](emoji/5321467619365125179)』
+الاسم: 『[{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)』
+المعرف: 『{username} [✔️](emoji/5220219696711736568)』
+الايدي: 『{user_id} [💎](emoji/5215703418340908982)』
+الرتبَه: 『{rotbat} [🛠](emoji/5215392879320505675)』
+النبذة: 『{user_bio} [🚬](emoji/5321467619365125179)』
 ——————————
 """.strip().format(
         full_name=full_name,
@@ -156,11 +157,11 @@ async def _(event):
     if spamwatch:
         ban = spamwatch.get_ban(user_id)
         if ban:
-            sw = f"**Spamwatch Banned :** `True` \n       **-**🤷‍♂️**Reason : **`{ban.reason}`"
+            sw = f"Spamwatch Banned : True \n       -🤷‍♂️Reason : {ban.reason}"
         else:
-            sw = f"**Spamwatch Banned :** `False`"
+            sw = f"Spamwatch Banned : False"
     else:
-        sw = "**Spamwatch Banned :**`Not Connected`"
+        sw = "Spamwatch Banned :Not Connected"
     try:
         casurl = "https://api.cas.chat/check?user_id={}".format(user_id)
         data = get(casurl).json()
@@ -169,16 +170,16 @@ async def _(event):
         data = None
     if data:
         if data["ok"]:
-            cas = "**Antispam(CAS) Banned :** `True`"
+            cas = "Antispam(CAS) Banned : True"
         else:
-            cas = "**Antispam(CAS) Banned :** `False`"
+            cas = "Antispam(CAS) Banned : False"
     else:
-        cas = "**Antispam(CAS) Banned :** `Couldn't Fetch`"
+        cas = "Antispam(CAS) Banned : Couldn't Fetch"
     caption = """**معلومات المسـتخدم[{}](tg://user?id={}):
-   ⌔︙⚕️ الايدي: **`{}`
-   ⌔︙👥**المجموعات المشتركه : **`{}`
-   ⌔︙🌏**رقم قاعده البيانات : **`{}`
-   ⌔︙🔏**هل هو حساب موثق  : **`{}`
+   ⌔︙⚕️ الايدي: **{}
+   ⌔︙👥المجموعات المشتركه : {}
+   ⌔︙🌏رقم قاعده البيانات : {}
+   ⌔︙🔏هل هو حساب موثق  : {}
 """.format(
         first_name,
         user_id,
@@ -208,7 +209,7 @@ async def who(event):
     try:
         photo, caption = await fetch_info(replied_user, event)
     except AttributeError:
-        return await edit_or_reply(cat, "**- لـم استطـع العثــور ع الشخــص**")
+        return await edit_or_reply(cat, "- لـم استطـع العثــور ع الشخــص")
 
     # إضافة قائمة بالإيموجيات المميزة ومعرّفاتها إن وُجدت في رسالة الأمر
     try:
@@ -273,17 +274,17 @@ async def _(event):
         try:
             p = await event.client.get_entity(input_str)
         except Exception as e:
-            return await edit_delete(event, f"`{str(e)}`", 5)
+            return await edit_delete(event, f"{str(e)}", 5)
         try:
             if p.first_name:
                 return await edit_or_reply(
-                    event, f"<b>ايدي المستخدم:</b> `{input_str}`\n<b>الايدي:</b> `{p.id}`",
+                    event, f"<b>ايدي المستخدم:</b> {input_str}\n<b>الايدي:</b> {p.id}",
                 )
         except Exception:
             try:
                 if p.title:
                     return await edit_or_reply(
-                        event, f"<b>ايدي الدردشة/القناة:</b> `{p.title}`\n<b>الايدي:</b> `{p.id}`",
+                        event, f"<b>ايدي الدردشة/القناة:</b> {p.title}\n<b>الايدي:</b> {p.id}",
                     )
             except Exception as e:
                 LOGS.info(str(e))
@@ -295,15 +296,15 @@ async def _(event):
             bot_api_file_id = pack_bot_file_id(r_msg.media)
             await edit_or_reply(
                 event,
-                f"<b>ايدي الدردشة:</b> `{str(event.chat_id)}`\n<b>ايدي المستخدم:</b> `{str(r_msg.sender_id)}`\n<b>ايدي الميديا:</b> `{bot_api_file_id}`",
+                f"<b>ايدي الدردشة:</b> {str(event.chat_id)}\n<b>ايدي المستخدم:</b> {str(r_msg.sender_id)}\n<b>ايدي الميديا:</b> {bot_api_file_id}",
             )
         else:
             await edit_or_reply(
                 event,
-               f"<b>ايدي الدردشة:</b> `{str(event.chat_id)}`\n<b>ايدي المستخدم:</b> `{str(r_msg.sender_id)}`",
+               f"<b>ايدي الدردشة:</b> {str(event.chat_id)}\n<b>ايدي المستخدم:</b> {str(r_msg.sender_id)}",
             )
     else:
-        await edit_or_reply(event, f"<b>ايدي الدردشة الحالية:</b> `{str(event.chat_id)}`")
+        await edit_or_reply(event, f"<b>ايدي الدردشة الحالية:</b> {str(event.chat_id)}")
 
 
 # أمر الرفع: .رفع + كلمة (يستخدم بالرد)
