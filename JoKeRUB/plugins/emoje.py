@@ -108,8 +108,8 @@ async def تجربة_ايموجي(event):
 
 
 @l313l.ar_cmd(
-    pattern="ايدي_ايموجي(?:\s|$)([\s\S]*)",
-    command=("ايدي_ايموجي", plugin_category),
+    pattern="ايموجي(?:\s|$)([\s\S]*)",
+    command=("ايموجي", plugin_category),
     info={
         "header": "استخراج آيديات الايموجيات المخصصة من الرسالة.",
         "usage": "{tr}ايدي_ايموجي (بالرد على رسالة تحوي ايموجيات)",
