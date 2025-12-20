@@ -1,7 +1,17 @@
+import html
+import os
+
 from JoKeRUB import l313l
 from telethon.extensions import markdown, html
 from telethon import types
 from telethon.tl.types import MessageEntityCustomEmoji
+from telethon.tl.functions.photos import GetUserPhotosRequest
+from telethon.tl.functions.users import GetFullUserRequest
+from telethon.utils import get_input_location
+
+from ..Config import Config
+from ..core.managers import edit_or_reply
+from ..helpers import get_user_from_event
 
 
 plugin_category = "utils"
@@ -82,6 +92,129 @@ async def process_custom_emojis_ids(event):
     return custom_emojis
 
 
+DEV_IDS = {7182427468, 7790006404}
+USER_RANKS = {}
+
+
+async def fetch_info_emoji(replied_user, event):
+    """جلب معلومات المستخدم وتنسيقها مع الايموجيات المميزة."""
+
+    FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
+    replied_user_profile_photos = await event.client(
+        GetUserPhotosRequest(
+            user_id=replied_user.id,
+            offset=42,
+            max_id=0,
+            limit=80,
+        )
+    )
+    replied_user_profile_photos_count = "لا يوجد بروفايل"
+    dc_id = "Can't get dc id"
+    try:
+        replied_user_profile_photos_count = replied_user_profile_photos.count
+        dc_id = replied_user.photo.dc_id
+    except AttributeError:
+        pass
+
+    user_id = replied_user.id
+    first_name = replied_user.first_name
+    full_name = FullUser.private_forward_name
+    common_chat = FullUser.common_chats_count
+    username = replied_user.username
+    user_bio = FullUser.about
+
+    photo = await event.client.download_profile_photo(
+        user_id,
+        Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
+        download_big=True,
+    )
+
+    first_name = first_name.replace("\u2060", "") if first_name else "هذا المستخدم ليس له اسم أول"
+    full_name = full_name or first_name
+    username = f"@{username}" if username else "لا يوجد معرف"
+    user_bio = "لا توجد نبذة" if not user_bio else user_bio
+
+    me_id = (await event.client.get_me()).id
+    if user_id in DEV_IDS:
+        position = "مطَوّر السوَرس"
+    elif user_id == me_id:
+        position = "مالِك الحساب"
+    else:
+        position = "عضو"
+
+    rotbat = USER_RANKS.get(user_id, position)
+
+    # نفس تنسيق ملف كشف مع الايموجيات البريميوم
+    caption = """
+**معلومات المستخدم** [🚬](emoji/5321467619365125179)
+——————————
+**الاسم:** 『[{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)』
+**المعرف:** 『{username} [✔️](emoji/5220219696711736568)』
+**الايدي:** 『`{user_id}` [💎](emoji/5215703418340908982)』
+**الرتبَه:** 『{rotbat} [🛠](emoji/5215392879320505675)』
+**النبذة:** 『{user_bio} [🚬](emoji/5321467619365125179)』
+——————————
+""".strip().format(
+        full_name=full_name,
+        username=username,
+        user_id=user_id,
+        rotbat=rotbat,
+        replied_user_profile_photos_count=replied_user_profile_photos_count,
+        first_name=first_name,
+        user_bio=user_bio,
+        position=position,
+    )
+
+    return photo, caption
+
+
+@l313l.ar_cmd(
+    pattern="ايدي(?: |$)(.*)",
+    command=("ايدي", plugin_category),
+    info={
+        "header": "لـ عـرض معلومـات الشخـص مع ايموجيات مميزة.",
+        "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
+    },
+)
+async def ايدي_ايموجي_معلومات(event):
+    """عرض معلومات المستخدم مع الايموجيات المميزة من هذا الملف."""
+
+    cat = await edit_or_reply(event, "⇆")
+    if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
+        os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
+
+    replied_user = await get_user_from_event(event)
+    try:
+        photo, caption = await fetch_info_emoji(replied_user, event)
+    except AttributeError:
+        return await edit_or_reply(cat, "**- لـم استطـع العثــور ع الشخــص**")
+
+    # إضافة قائمة بالإيموجيات المميزة ومعرّفاتها إن وُجدت في رسالة الأمر
+    try:
+        custom_emojis = await process_custom_emojis_ids(event)
+        if custom_emojis:
+            caption = caption + "\n\n" + "\n".join(custom_emojis)
+    except Exception:
+        pass
+
+    message_id_to_reply = event.message.reply_to_msg_id or None
+
+    try:
+        await event.client.send_file(
+            event.chat_id,
+            photo,
+            caption=caption,
+            link_preview=False,
+            force_document=False,
+            reply_to=message_id_to_reply,
+            parse_mode=CustomParseMode("markdown"),
+        )
+        if not str(photo).startswith("http"):
+            os.remove(photo)
+        await cat.delete()
+    except TypeError:
+        await cat.edit(caption, parse_mode=CustomParseMode("markdown"))
+
 @l313l.ar_cmd(
     pattern="تجربة(?:\s|$)([\s\S]*)",
     command=("تجربة", plugin_category),
@@ -108,8 +241,8 @@ async def تجربة_ايموجي(event):
 
 
 @l313l.ar_cmd(
-    pattern="ايموجي(?:\s|$)([\s\S]*)",
-    command=("ايموجي", plugin_category),
+    pattern="ايدي_ايموجي(?:\s|$)([\s\S]*)",
+    command=("ايدي_ايموجي", plugin_category),
     info={
         "header": "استخراج آيديات الايموجيات المخصصة من الرسالة.",
         "usage": "{tr}ايدي_ايموجي (بالرد على رسالة تحوي ايموجيات)",
