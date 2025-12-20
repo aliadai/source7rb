@@ -24,18 +24,17 @@ class InvalidFormatException(Exception):
 
 
 class CustomParseMode:
-    """وضع مخصص لتحليل النص مع دعم السبويلر والايموجيات المخصصة."""
+    """وضع مخصص لتحليل النص مع دعم السبويلر والايموجيات المخصصة.
 
-    def init(self, parse_mode: str):
-        self.parse_mode = parse_mode
+    يُستخدم كـ parse_mode مباشرة بدون إنشاء كائن منه:
 
-    def parse(self, text):
-        if self.parse_mode == "markdown":
-            text, entities = markdown.parse(text)
-        elif self.parse_mode == "html":
-            text, entities = html.parse(text)
-        else:
-            raise InvalidFormatException("Invalid parse mode. Choose either Markdown or HTML.")
+        parse_mode=CustomParseMode
+    """
+
+    @staticmethod
+    def parse(text):
+        # نستخدم markdown كمود افتراضي
+        text, entities = markdown.parse(text)
 
         for i, e in enumerate(entities):
             if isinstance(e, types.MessageEntityTextUrl):
@@ -82,7 +81,7 @@ async def process_custom_emojis_ids(event):
                         if emoji and emoji_id:
                             # تنسيق عربي قريب من أسلوب باقي السورس
                             custom_emojis.append(
-                                f"⌔︙ايدي الايموجي : {emoji_id} | الايموجي : {emoji} \n"
+                                f"⌔︙ايدي الايموجي : `{emoji_id}` | الايموجي : {emoji} \n"
                                 f"⌔︙رابطه : [{emoji}](emoji/{emoji_id})"
                             )
                             processed_offsets.add(entity.offset)
@@ -181,13 +180,13 @@ async def fetch_info_emoji(replied_user, event):
 
     # تنسيق جديد: كل سطر في اقتباس مستقل مع الايموجيات البريميوم
     caption = """
-معلومات المستخدم [🚬](emoji/5321467619365125179)
+**معلومات المستخدم** [🚬](emoji/5321467619365125179)
 ——————————
-> الاسم: [{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)
-> المعرف: {username} [✔️](emoji/5220219696711736568)
-> الايدي: {user_id} [💎](emoji/5215703418340908982)
-> الرتبَه: {rotbat} [🛠](emoji/5215392879320505675)
-> النبذة: {user_bio} [🚬](emoji/5321467619365125179)
+> **الاسم:** [{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)
+> **المعرف:** {username} [✔️](emoji/5220219696711736568)
+> **الايدي:** `{user_id}` [💎](emoji/5215703418340908982)
+> **الرتبَه:** {rotbat} [🛠](emoji/5215392879320505675)
+> **النبذة:** {user_bio} [🚬](emoji/5321467619365125179)
 ——————————
 """.strip().format(
         full_name=full_name,
@@ -222,7 +221,7 @@ async def ايدي_ايموجي_معلومات(event):
     try:
         photo, caption = await fetch_info_emoji(replied_user, event)
     except AttributeError:
-        return await edit_or_reply(cat, "- لـم استطـع العثــور ع الشخــص")
+        return await edit_or_reply(cat, "**- لـم استطـع العثــور ع الشخــص**")
 
     # إضافة قائمة بالإيموجيات المميزة ومعرّفاتها إن وُجدت في رسالة الأمر
     try:
@@ -242,13 +241,13 @@ async def ايدي_ايموجي_معلومات(event):
             link_preview=False,
             force_document=False,
             reply_to=message_id_to_reply,
-            parse_mode=CustomParseMode("markdown"),
+            parse_mode=CustomParseMode,
         )
         if not str(photo).startswith("http"):
             os.remove(photo)
         await cat.delete()
     except TypeError:
-        await cat.edit(caption, parse_mode=CustomParseMode("markdown"))
+        await cat.edit(caption, parse_mode=CustomParseMode)
 
 @l313l.ar_cmd(
     pattern="تجربة(?:\s|$)([\s\S]*)",
@@ -261,17 +260,17 @@ async def ايدي_ايموجي_معلومات(event):
 async def تجربة_ايموجي(event):
     await event.edit(
         """
-✧ .م1 [⚙️](emoji/5971846335085678067)  
-✧ .م2 [📟](emoji/5260640681906419699)  
-✧ .م3 [⛳️](emoji/5264710717470158023)  
-✧ .م4 [🛠](emoji/5863945989127148135)  
-✧ .م5 [🎯](emoji/5397782960512444700)  
-✧ .م6 [💰](emoji/5213094908608392768)  
-✧ .م7 [🎲](emoji/5879623757923881824)  
-✧ .م8 [🧩](emoji/5429368540849260641)  
+✧ `.م1` [⚙️](emoji/5971846335085678067)  
+✧ `.م2` [📟](emoji/5260640681906419699)  
+✧ `.م3` [⛳️](emoji/5264710717470158023)  
+✧ `.م4` [🛠](emoji/5863945989127148135)  
+✧ `.م5` [🎯](emoji/5397782960512444700)  
+✧ `.م6` [💰](emoji/5213094908608392768)  
+✧ `.م7` [🎲](emoji/5879623757923881824)  
+✧ `.م8` [🧩](emoji/5429368540849260641)  
 """,
         link_preview=None,
-        parse_mode=CustomParseMode("markdown"),
+        parse_mode=CustomParseMode,
     )
 
 
@@ -291,7 +290,7 @@ async def ايدي_ايموجي_كوماند(event):
             await event.client.send_message(
                 event.chat_id,
                 line,
-                parse_mode=CustomParseMode("markdown"),
+                parse_mode=CustomParseMode,
             )
     else:
         await event.edit("⌔︙ما لقيت اي ايموجي مخصص بالرسالة.")
