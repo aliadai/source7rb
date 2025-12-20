@@ -6,6 +6,7 @@ from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.utils import get_input_location, pack_bot_file_id
 from telethon.tl.types import MessageEntityMentionName
+from telethon.network.connection.tcpabridged import ConnectionTcpAbridged
 from ..sql_helper.globals import gvarstatus
 
 from JoKeRUB import l313l
@@ -15,6 +16,8 @@ from ..Config import Config
 from ..core.managers import edit_or_reply
 from ..helpers import get_user_from_event, reply_id
 from . import spamwatch
+from addons import process_custom_emojis_ids
+from xtelethon import CustomParseMode
 
 JEP_EM = Config.ID_EM or " •❃ "
 ID_EDIT = gvarstatus("ID_ET") or "ايدي"
@@ -95,15 +98,20 @@ async def fetch_info(replied_user, event):
     # إن لم تكن هناك رتبة مرفوعة، تكون الرتبة الافتراضية هي نفس الموقع
     rotbat = USER_RANKS.get(user_id, position)
 
-    # تنسيق نظيف وبدون تعبيرات وبخط عريض
+    # تنسيق Markdown مع إيموجيات مميزة واقتباس حول القيم باستخدام معرفات الإيموجي المميزة
+    # 🚬 5321467619365125179
+    # ⭐️ 5974043322526731924
+    # ✔️ 5220219696711736568
+    # 💎 5215703418340908982
+    # 🛠 5215392879320505675
     caption = """
-<b>معلومات المستخدم من RobinSource </b>
+**معلومات المستخدم** [🚬](emoji/5321467619365125179)
 ——————————
-<b>الاسم:</b> <a href="tg://user?id={user_id}">{first_name}
-<b>المعرف:</b> {username}
-<b>الايدي:</b> <code>{user_id}</code>
-<b>الرتبَه:</b> {rotbat}
-<b>النبذة:</b> {user_bio}
+**الاسم:** 『[{first_name}](tg://user?id={user_id}) [⭐️](emoji/5974043322526731924)』
+**المعرف:** 『{username} [✔️](emoji/5220219696711736568)』
+**الايدي:** 『`{user_id}` [💎](emoji/5215703418340908982)』
+**الرتبَه:** 『{rotbat} [🛠](emoji/5215392879320505675)』
+**النبذة:** 『{user_bio} [🚬](emoji/5321467619365125179)』
 ——————————
 """.strip().format(
         full_name=full_name,
@@ -201,16 +209,33 @@ async def who(event):
         photo, caption = await fetch_info(replied_user, event)
     except AttributeError:
         return await edit_or_reply(cat, "**- لـم استطـع العثــور ع الشخــص**")
+
+    # إضافة قائمة بالإيموجيات المميزة ومعرّفاتها إن وُجدت في رسالة الأمر
+    try:
+        custom_emojis = await process_custom_emojis_ids(event)
+        if custom_emojis:
+            caption = caption + "\n\n" + "\n".join(custom_emojis)
+    except Exception:
+        pass
+
     message_id_to_reply = event.message.reply_to_msg_id
     if not message_id_to_reply:
         message_id_to_reply = None
     try:
-        await event.client.send_file(            event.chat_id,            photo,            caption=caption,            link_preview=False,            force_document=False,            reply_to=message_id_to_reply,            parse_mode="html",        )
+        await event.client.send_file(
+            event.chat_id,
+            photo,
+            caption=caption,
+            link_preview=False,
+            force_document=False,
+            reply_to=message_id_to_reply,
+            parse_mode=CustomParseMode("markdown"),
+        )
         if not photo.startswith("http"):
             os.remove(photo)
         await cat.delete()
     except TypeError:
-        await cat.edit(caption, parse_mode="html")
+        await cat.edit(caption, parse_mode=CustomParseMode("markdown"))
 #كـتابة  @F_O_1
 #تعديل وترتيب  @F_O_1
 @l313l.ar_cmd(
