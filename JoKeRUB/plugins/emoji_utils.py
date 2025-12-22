@@ -1,5 +1,6 @@
 import html
 import os
+import re
 
 from JoKeRUB import l313l
 from telethon.extensions import markdown, html
@@ -166,7 +167,29 @@ async def fetch_info_emoji(replied_user, event):
     first_name = first_name.replace("\u2060", "") if first_name else "هذا المستخدم ليس له اسم أول"
     full_name = full_name or first_name
     username = f"@{username}" if username else "لا يوجد معرف"
-    user_bio = "لا توجد نبذة" if not user_bio else user_bio
+    user_bio = "لا يوجد بايو" if not user_bio else user_bio
+
+    # محاولة سحب رابط قناة من البايو (أول رابط t.me/..)
+    channel_name = None
+    channel_url = None
+    if user_bio and "t.me/" in user_bio:
+        match = re.search(r"(https?://t\.me/[^\s]+|t\.me/[^\s]+)", user_bio)
+        if match:
+            url = match.group(1)
+            if not url.startswith("http"):
+                url = "https://" + url
+            channel_url = url
+            try:
+                entity = await event.client.get_entity(url)
+                channel_name = getattr(entity, "title", None)
+            except Exception:
+                channel_name = None
+
+    if channel_url:
+        channel_display_name = channel_name or "قناته"
+        channel_line = f"✸ القَنـاة اللي ف البايو: [{channel_display_name}]({channel_url}) [👍](emoji/5805609368195961657)"
+    else:
+        channel_line = "✸ القَنـاة اللي ف البايو: لا يوجد قناة في البايو"
 
     me_id = (await event.client.get_me()).id
     if user_id in DEV_IDS:
@@ -186,7 +209,8 @@ async def fetch_info_emoji(replied_user, event):
 ✸ **المعرف: {username} [🙄](emoji/5409081739567987767)**
 ✸ **الايدي: {user_id} [🆕](emoji/5449786231258888184)**
 ✸ **الرتبَه: [🫶](emoji/5764920531660837314) {rotbat} [🫶](emoji/5767030090747614223)**
-✸ **النبذة: {user_bio}**
+✸ **البايو: {user_bio}**
+{channel_line}
 ——————————
 """.strip().format(
         full_name=full_name,
@@ -197,6 +221,7 @@ async def fetch_info_emoji(replied_user, event):
         first_name=first_name,
         user_bio=user_bio,
         position=position,
+        channel_line=channel_line,
     )
 
     return photo, caption
@@ -294,3 +319,27 @@ async def ايدي_ايموجي_كوماند(event):
             )
     else:
         await event.edit("⌔︙ما لقيت اي ايموجي مخصص بالرسالة.")
+
+
+@l313l.ar_cmd(incoming=True, func=lambda e: e.is_private, edited=False)
+async def ايدي_ايموجي_خاص(event):
+    """رد تلقائي في الخاص: اذا احد ارسل .ايدي_ايموجي مع ايموجيات مميزة يرجّع له آيدياتها."""
+
+    # تجاهل رسائلك انت
+    try:
+        if event.sender_id == (await event.client.get_me()).id:
+            return
+    except Exception:
+        pass
+
+    text = event.raw_text or ""
+    if not text.startswith(".ايدي_ايموجي"):
+        return
+
+    custom_emojis = await process_custom_emojis_ids(event)
+
+    if custom_emojis:
+        for line in custom_emojis:
+            await event.reply(line, parse_mode=CustomParseMode)
+    else:
+        await event.reply("⌔︙ما لقيت اي ايموجي مخصص بالرسالة.")
