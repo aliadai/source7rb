@@ -31,7 +31,16 @@ async def update_forever():
     BRANCH = "main"
     REPO = "source7rb"
     if REPO:
-        await _catutils.runcmd(f"git clone -b {BRANCH} https://github.com/aliadai/{REPO}.git TempCat")
+        # استنساخ السورس في مجلد مؤقت TempCat
+        await _catutils.runcmd(
+            f"git clone -b {BRANCH} https://github.com/aliadai/{REPO}.git TempCat"
+        )
+
+        # اذا فشل الاستنساخ ولم يُنشأ المجلد، لا نحاول استخدامه حتى لا يحدث FileNotFoundError
+        if not os.path.isdir("TempCat"):
+            LOGS.error("[اوامر التشغيل] فشل استنساخ المستودع، مجلد TempCat غير موجود.")
+            return
+
         file_list = os.listdir("TempCat")
         for file in file_list:
             await _catutils.runcmd(f"rm -rf {file}")
