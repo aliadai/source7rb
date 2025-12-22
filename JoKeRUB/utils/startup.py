@@ -80,8 +80,12 @@ async def setup_bot():
         l313l.uid = l313l.tgbot.uid = utils.get_peer_id(l313l.me)
         if Config.OWNER_ID == 0:
             Config.OWNER_ID = utils.get_peer_id(l313l.me)
-        if not await check_dyno_type():
-            LOGS.error("قد تحدث مشكلة ولن يعمل السورس لان نوع الداينو ليس بيسك قم بتحويله الى basic")
+        # فحص نوع الداينو يخص Heroku فقط، لذلك لا يتم على الـ VPS إلا إذا كانت إعدادات هيروكو متوفرة
+        if Config.HEROKU_API_KEY and Config.HEROKU_APP_NAME:
+            if not await check_dyno_type():
+                LOGS.error(
+                    "قد تحدث مشكلة ولن يعمل السورس لان نوع الداينو ليس بيسك قم بتحويله الى basic"
+                )
     except Exception as e:
         LOGS.error(f"كـود تيرمكس - {str(e)}")
         sys.exit()
