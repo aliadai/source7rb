@@ -191,54 +191,6 @@ async def _(event):
         cas,
     )
     await edit_or_reply(catevent, caption)
-
-
-@l313l.ar_cmd(pattern="ايدي(?: |$)(.*)",
-    command=("ايدي", plugin_category),
-    info={
-        "header": "لـ عـرض معلومـات الشخـص",
-        "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
-    },
-)
-async def who(event):
-    "Gets info of an user"
-    cat = await edit_or_reply(event, "⇆")
-    if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
-        os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
-    replied_user = await get_user_from_event(event)
-    try:
-        photo, caption = await fetch_info(replied_user, event)
-    except AttributeError:
-        return await edit_or_reply(cat, "- لـم استطـع العثــور ع الشخــص")
-
-    # إضافة قائمة بالإيموجيات المميزة ومعرّفاتها إن وُجدت في رسالة الأمر
-    try:
-        custom_emojis = await process_custom_emojis_ids(event)
-        if custom_emojis:
-            caption = caption + "\n\n" + "\n".join(custom_emojis)
-    except Exception:
-        pass
-
-    message_id_to_reply = event.message.reply_to_msg_id
-    if not message_id_to_reply:
-        message_id_to_reply = None
-    try:
-        await event.client.send_file(
-            event.chat_id,
-            photo,
-            caption=caption,
-            link_preview=False,
-            force_document=False,
-            reply_to=message_id_to_reply,
-            parse_mode=CustomParseMode("markdown"),
-        )
-        if not photo.startswith("http"):
-            os.remove(photo)
-        await cat.delete()
-    except TypeError:
-        await cat.edit(caption, parse_mode=CustomParseMode("markdown"))
-#كـتابة  @F_O_1
-#تعديل وترتيب  @F_O_1
 @l313l.ar_cmd(
     pattern="رابط الحساب(?:\s|$)([\s\S]*)",
     command=("رابط الحساب", plugin_category),
