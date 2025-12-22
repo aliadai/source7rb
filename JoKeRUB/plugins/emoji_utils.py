@@ -268,7 +268,8 @@ async def ايدي_ايموجي_معلومات(event):
             reply_to=message_id_to_reply,
             parse_mode=CustomParseMode,
         )
-        if not str(photo).startswith("http"):
+        # حذف ملف الصورة اذا كان تم تحميله فعلاً
+        if photo and not str(photo).startswith("http") and os.path.exists(photo):
             os.remove(photo)
         await cat.delete()
     except TypeError:
