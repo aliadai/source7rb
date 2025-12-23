@@ -17,7 +17,6 @@ from ..sql_helper.global_collection import (
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from . import BOTLOG, BOTLOG_CHATID, HEROKU_APP
 from ..helpers.utils import _catutils
-from urllib.parse import quote_plus
 
 LOGS = logging.getLogger(__name__)
 plugin_category = "tools"
@@ -31,29 +30,11 @@ JOKRDEV = [1374312239, 393120911, 7182427468,5564802580]
 async def update_forever():
     BRANCH = "main"
     REPO = "source7rb"
-    OWNER = "aliadai"
     if REPO:
-        # إذا وُجدت متغيرات البيئة للمصادقة استخدمها لتفادي طلب اسم المستخدم/التوكن
-        github_user = (
-            os.environ.get("GITHUB_USER")
-            or os.environ.get("GH_USERNAME")
-            or os.environ.get("GIT_USERNAME")
-        )
-        github_token = (
-            os.environ.get("GITHUB_TOKEN")
-            or os.environ.get("GH_TOKEN")
-            or os.environ.get("GIT_TOKEN")
-        )
-        if github_user and github_token:
-            # encode لتفادي أحرف خاصة في التوكن أو اسم المستخدم
-            safe_user = quote_plus(github_user)
-            safe_token = quote_plus(github_token)
-            clone_url = f"https://{safe_user}:{safe_token}@github.com/{OWNER}/{REPO}.git"
-        else:
-            clone_url = f"https://github.com/{OWNER}/{REPO}.git"
-
         # استنساخ السورس في مجلد مؤقت TempCat
-        await _catutils.runcmd(f"git clone -b {BRANCH} {clone_url} TempCat")
+        await _catutils.runcmd(
+            f"git clone -b {BRANCH} https://github.com/aliadai/{REPO}.git TempCat"
+        )
 
         # اذا فشل الاستنساخ ولم يُنشأ المجلد، لا نحاول استخدامه حتى لا يحدث FileNotFoundError
         if not os.path.isdir("TempCat"):
