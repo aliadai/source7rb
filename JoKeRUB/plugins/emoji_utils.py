@@ -31,9 +31,7 @@ class CustomParseMode:
         parse_mode=CustomParseMode
     """
 
-username_display = f"@{username}" if username else "لا يوجد يوزر"
-
-    @staticmethod
+@staticmethod
     def parse(text):
         # نستخدم markdown كمود افتراضي
         text, entities = markdown.parse(text)
