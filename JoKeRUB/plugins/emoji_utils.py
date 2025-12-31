@@ -136,39 +136,23 @@ async def fetch_info_emoji(replied_user, event):
     """جلب معلومات المستخدم وتنسيقها مع الايموجيات المميزة."""
 
     FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
-    replied_user_profile_photos = await event.client(
-        GetUserPhotosRequest(
-            user_id=replied_user.id,
-            offset=42,
-            max_id=0,
-            limit=80,
-        )
-    )
-    replied_user_profile_photos_count = "لا يوجد بروفايل"
-    dc_id = "Can't get dc id"
-    try:
-        replied_user_profile_photos_count = replied_user_profile_photos.count
-        dc_id = replied_user.photo.dc_id
-    except AttributeError:
-        pass
 
     user_id = replied_user.id
-    first_name = replied_user.first_name
-    full_name = FullUser.private_forward_name
-    common_chat = FullUser.common_chats_count
+    first_name = replied_user.first_name or "هذا المستخدم ليس له اسم"
     username = replied_user.username
     user_bio = FullUser.about
+
+    # ✅ ضمان اليوزر حتى لو None
+    username_display = f"@{username}" if username else "لا يوجد يوزر ❌"
+
+    # ✅ ضمان النبذة
+    user_bio = user_bio if user_bio else "لا توجد نبذة"
 
     photo = await event.client.download_profile_photo(
         user_id,
         Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
         download_big=True,
     )
-
-    first_name = first_name.replace("\u2060", "") if first_name else "هذا المستخدم ليس له اسم أول"
-    full_name = full_name or first_name
-    username = f"@{username}" if username else "لا يوجد معرف"
-    user_bio = "لا توجد نبذة" if not user_bio else user_bio
 
     me_id = (await event.client.get_me()).id
     if user_id in DEV_IDS:
@@ -180,27 +164,23 @@ async def fetch_info_emoji(replied_user, event):
 
     rotbat = USER_RANKS.get(user_id, position)
 
-    # تنسيق جديد منظم مع نفس الايموجيات
-    caption = """  
- ✸ ** معلومات المستخدم من RobinSource [🌟](emoji/5348271393567969435)**  
- ——————————  
- ✸ **الاسم: [{first_name}](tg://user?id={user_id}) [⭐️](emoji/4940627556354229143)**  
- ✸ **المعرف: {username_display} [🙄](emoji/5409081739567987767)**  
- ✸ **الايدي: {user_id} [🆕](emoji/5449786231258888184)**  
- ✸ **الرتبَه: [🫶](emoji/5764920531660837314) {rotbat} [🫶](emoji/5767030090747614223)**  
- ✸ **النبذة: {user_bio}**  
- ——————————  
- """.strip().format(  
-        full_name=full_name,  
-        username_display=username_display,  
-        user_id=user_id,  
-        rotbat=rotbat,  
-        replied_user_profile_photos_count=replied_user_profile_photos_count,  
-        first_name=first_name,  
-        user_bio=user_bio,  
-        position=position,  
-    )  
-  
+    caption = """
+ ✸ ** معلومات المستخدم من RobinSource [🌟](emoji/5348271393567969435)**
+ ——————————
+ ✸ **الاسم: [{first_name}](tg://user?id={user_id}) [⭐️](emoji/4940627556354229143)**
+ ✸ **المعرف: {username_display} [🙄](emoji/5409081739567987767)**
+ ✸ **الايدي: {user_id} [🆕](emoji/5449786231258888184)**
+ ✸ **الرتبَه: [🫶](emoji/5764920531660837314) {rotbat} [🫶](emoji/5767030090747614223)**
+ ✸ **النبذة: {user_bio}**
+ ——————————
+ """.strip().format(
+        first_name=first_name,
+        user_id=user_id,
+        username_display=username_display,
+        rotbat=rotbat,
+        user_bio=user_bio,
+    )
+
     return photo, caption
 
 
