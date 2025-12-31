@@ -133,49 +133,48 @@ async def get_user_from_event_emoji(event):
 async def fetch_info_emoji(replied_user, event):
     """جلب معلومات المستخدم وتنسيقها مع الايموجيات المميزة."""
 
-    FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
+    # ===== جلب المعلومات =====
+    full = await event.client(GetFullUserRequest(replied_user.id))
+    full_user = full.full_user
 
     user_id = replied_user.id
     first_name = replied_user.first_name or "هذا المستخدم ليس له اسم"
-    username = replied_user.username
-    user_bio = FullUser.about
+    user_bio = full_user.about or "لا توجد نبذة"
 
-    # ✅ ضمان اليوزر حتى لو None
+    # ====== استخراج اليوزرات (العادي + NFT) ======
     username_display = "لا يوجد يوزر ❌"
 
-# يوزر عادي
-if replied_user.username:
-    username_display = f"@{replied_user.username}"
-else:
-    # يوزرات NFT
-    nft_usernames = []
-    if getattr(replied_user, "usernames", None):
-        for u in replied_user.usernames:
-            if u.username:
-                nft_usernames.append(f"@{u.username}")
+    # يوزر عادي
+    if replied_user.username:
+        username_display = f"@{replied_user.username}"
+    else:
+        # يوزرات NFT
+        nft_usernames = []
+        if getattr(replied_user, "usernames", None):
+            for u in replied_user.usernames:
+                if u.username:
+                    nft_usernames.append(f"@{u.username}")
 
-    if nft_usernames:
-        username_display = " ، ".join(nft_usernames)
+        if nft_usernames:
+            username_display = " ، ".join(nft_usernames)
 
-    # ✅ ضمان النبذة
-    user_bio = user_bio if user_bio else "لا توجد نبذة"
-
+    # ===== تحميل الصورة =====
     photo = await event.client.download_profile_photo(
         user_id,
         Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
         download_big=True,
     )
 
+    # ===== الرتبة =====
     me_id = (await event.client.get_me()).id
     if user_id in DEV_IDS:
-        position = "مطَوّر السوَرس"
+        rotbat = "مطَوّر السوَرس"
     elif user_id == me_id:
-        position = "مالِك الحساب"
+        rotbat = "مالِك الحساب"
     else:
-        position = "عضو"
+        rotbat = "عضو"
 
-    rotbat = USER_RANKS.get(user_id, position)
-
+    # ===== النص =====
     caption = """
  ✸ ** معلومات المستخدم من RobinSource [🌟](emoji/5348271393567969435)**
  ——————————
