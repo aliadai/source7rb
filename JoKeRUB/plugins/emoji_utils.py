@@ -31,6 +31,8 @@ class CustomParseMode:
         parse_mode=CustomParseMode
     """
 
+username_display = f"@{username}" if username else "لا يوجد يوزر"
+
     @staticmethod
     def parse(text):
         # نستخدم markdown كمود افتراضي
@@ -189,17 +191,14 @@ async def fetch_info_emoji(replied_user, event):
  ✸ **النبذة: {user_bio}**
  ——————————
  """.strip().format(
-        full_name=full_name,
-        username=username,
+        first_name=first_name,
         user_id=user_id,
         rotbat=rotbat,
-        replied_user_profile_photos_count=replied_user_profile_photos_count,
-        first_name=first_name,
-        user_bio=user_bio,
-        position=position,
-    )
+        user_bio=user_bio_display,
+        username_display=username_display
+)
 
-    return photo, caption
+return photo, caption
 
 
 @l313l.ar_cmd(
