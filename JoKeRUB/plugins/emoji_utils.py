@@ -31,7 +31,7 @@ class CustomParseMode:
         parse_mode=CustomParseMode
     """
 
-@staticmethod
+    @staticmethod
     def parse(text):
         # نستخدم markdown كمود افتراضي
         text, entities = markdown.parse(text)
