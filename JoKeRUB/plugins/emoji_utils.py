@@ -141,7 +141,21 @@ async def fetch_info_emoji(replied_user, event):
     user_bio = FullUser.about
 
     # ✅ ضمان اليوزر حتى لو None
-    username_display = f"@{username}" if username else "لا يوجد يوزر ❌"
+    username_display = "لا يوجد يوزر ❌"
+
+# يوزر عادي
+if replied_user.username:
+    username_display = f"@{replied_user.username}"
+else:
+    # يوزرات NFT
+    nft_usernames = []
+    if getattr(replied_user, "usernames", None):
+        for u in replied_user.usernames:
+            if u.username:
+                nft_usernames.append(f"@{u.username}")
+
+    if nft_usernames:
+        username_display = " ، ".join(nft_usernames)
 
     # ✅ ضمان النبذة
     user_bio = user_bio if user_bio else "لا توجد نبذة"
