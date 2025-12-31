@@ -181,24 +181,27 @@ async def fetch_info_emoji(replied_user, event):
     rotbat = USER_RANKS.get(user_id, position)
 
     # تنسيق جديد منظم مع نفس الايموجيات
-    caption = """
- ✸ ** معلومات المستخدم من RobinSource [🌟](emoji/5348271393567969435)**
- ——————————
- ✸ **الاسم: [{first_name}](tg://user?id={user_id}) [⭐️](emoji/4940627556354229143)**
- ✸ **المعرف: {username_display} [🙄](emoji/5409081739567987767)**
- ✸ **الايدي: {user_id} [🆕](emoji/5449786231258888184)**
- ✸ **الرتبَه: [🫶](emoji/5764920531660837314) {rotbat} [🫶](emoji/5767030090747614223)**
- ✸ **النبذة: {user_bio}**
- ——————————
- """.strip().format(
-        first_name=first_name,
-        user_id=user_id,
-        rotbat=rotbat,
-        user_bio=user_bio_display,
-        username_display=username_display
-)
-
-return photo, caption
+    caption = """  
+ ✸ ** معلومات المستخدم من RobinSource [🌟](emoji/5348271393567969435)**  
+ ——————————  
+ ✸ **الاسم: [{first_name}](tg://user?id={user_id}) [⭐️](emoji/4940627556354229143)**  
+ ✸ **المعرف: {username_display} [🙄](emoji/5409081739567987767)**  
+ ✸ **الايدي: {user_id} [🆕](emoji/5449786231258888184)**  
+ ✸ **الرتبَه: [🫶](emoji/5764920531660837314) {rotbat} [🫶](emoji/5767030090747614223)**  
+ ✸ **النبذة: {user_bio}**  
+ ——————————  
+ """.strip().format(  
+        full_name=full_name,  
+        username_display=username_display,  
+        user_id=user_id,  
+        rotbat=rotbat,  
+        replied_user_profile_photos_count=replied_user_profile_photos_count,  
+        first_name=first_name,  
+        user_bio=user_bio,  
+        position=position,  
+    )  
+  
+    return photo, caption
 
 
 @l313l.ar_cmd(
