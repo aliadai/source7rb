@@ -69,3 +69,35 @@ async def _(event):
     await event.edit(
     "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n ᯽︙ اختر احدى هذه القوائم\n\n- ( `.اذكار الصباح` ) \n- ( `.اذكار المساء` )   \n- (`.اذكار النوم`)\n- ( `.اذكار الصلاة`) \n- ( `.اذكار الاستيقاظ` ) \n- ( `.احاديث` )\n- ( `.اذكار` )\n- ( `.اذكار عشر` )\n\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n⌔︙CH : @k_jj_j"
             )           
+
+from telethon import events
+
+# Dictionary to save triggers and their messages
+triggered_messages = {}
+
+@l313l.ar_cmd(
+    pattern=r"تل (.+)",
+    command=("تل", plugin_category),
+)
+async def _(event):
+    # فقط ينفذ إذا كان رد على رسالة ثانية
+    if event.is_reply:
+        # الكلمة المطلوبة
+        text_trigger = event.pattern_match.group(1).strip()
+        # الرسالة الأصلية التي رديت عليها
+        reply_msg = await event.get_reply_message()
+        # تحفظ الكلمة ونص الرسالة المرتبطة بها
+        triggered_messages[text_trigger] = reply_msg.message
+        await event.edit(f"تم حفظ الرد لكلمة ({text_trigger}) ✅")
+    else:
+        await event.edit("رد على رسالة وحدد الكلمة هكذا:\n.تل +الكلمة")
+
+# مراقبة كل رسالة في الجروب
+@events.NewMessage()
+async def auto_reply(event):
+    # تحقق إذا المرسل ليس أنت حتى لا يصير لوب
+    if event.sender_id != (await event.client.get_me()).id:
+        msg_text = event.text.strip()
+        # تحقق إذا الرسالة هي واحدة من الكلمات المحفوظة
+        if msg_text in triggered_messages:
+            await event.reply(triggered_messages[msg_text])
