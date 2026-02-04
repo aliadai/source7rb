@@ -1,9 +1,8 @@
 import random
+import json
+import os
 from telethon import events
-import random, re
-
 from JoKeRUB.utils import admin_cmd
-
 import asyncio
 from JoKeRUB import l313l
 from l313l.razan._islam import *
@@ -11,7 +10,8 @@ from ..core.managers import edit_or_reply
 
 plugin_category = "extra" 
 
-#by ~ @F_O_1
+# ---------------------- أوامر الأذكار التقليدية ----------------------
+
 @l313l.ar_cmd(
     pattern="اذكار الصباح",
     command=("اذكار الصباح", plugin_category),)
@@ -19,7 +19,7 @@ async def _(event):
      if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
            roze = random.choice(razan)
            return await event.edit(f"{roze}")
-#by ~ @F_O_1
+
 @l313l.ar_cmd(
     pattern="اذكار المساء$",
     command=("اذكار المساء", plugin_category),)
@@ -27,8 +27,7 @@ async def _(event):
      if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
            ror = random.choice(roz)
            return await event.edit(f"{ror}")
-            
-#by ~ @RR 9R7
+
 @l313l.ar_cmd(
     pattern="احاديث$",
     command=("احاديث", plugin_category),)
@@ -44,7 +43,7 @@ async def _(event):
      if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
            az = random.choice(rozan)
            return await event.edit(f"{az}")
-                     
+
 @l313l.ar_cmd(
     pattern="اذكار النوم$",
     command=("اذكار النوم", plugin_category),)
@@ -52,7 +51,7 @@ async def _(event):
      if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
            rr = random.choice(rozmuh)
            return await event.edit(f"{rr}")
-           
+
 @l313l.ar_cmd(
     pattern="اذكار الصلاة$",
     command=("اذكار الصلاة", plugin_category),)
@@ -61,43 +60,61 @@ async def _(event):
            rm = random.choice(rzane)
            return await event.edit(f"{rm}")
 
-
 @l313l.ar_cmd(
     pattern="اوامر الاذكار$",
     command=("اوامر الاذكار", plugin_category),)
 async def _(event):
     await event.edit(
-    "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n ᯽︙ اختر احدى هذه القوائم\n\n- ( `.اذكار الصباح` ) \n- ( `.اذكار المساء` )   \n- (`.اذكار النوم`)\n- ( `.اذكار الصلاة`) \n- ( `.اذكار الاستيقاظ` ) \n- ( `.احاديث` )\n- ( `.اذكار` )\n- ( `.اذكار عشر` )\n\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n⌔︙CH : @k_jj_j"
+    "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n ᯽︙ اختر احدى هذه القوائم\n\n- ( `.اذكار الصباح` ) \n- ( `.اذكار المساء` ) \n- ( `.احاديث` ) \n- ( `.اذكار الاستيقاظ` ) \n- ( `.اذكار النوم` ) \n- ( `.اذكار الصلاة` )\n"
             )           
 
-from telethon import events
+# -------------------- بداية كود التلقين ( .تل ) --------------------
 
-# Dictionary to save triggers and their messages
-triggered_messages = {}
+TRIGGERS_FILE = "joker_triggers.json"
+
+def load_triggers():
+    if os.path.exists(TRIGGERS_FILE):
+        with open(TRIGGERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_triggers(triggers):
+    with open(TRIGGERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(triggers, f, ensure_ascii=False)
+
+triggered_messages = load_triggers()
 
 @l313l.ar_cmd(
     pattern=r"تل (.+)",
     command=("تل", plugin_category),
 )
-async def _(event):
-    # فقط ينفذ إذا كان رد على رسالة ثانية
+async def joker_tell_cmd(event):
     if event.is_reply:
-        # الكلمة المطلوبة
-        text_trigger = event.pattern_match.group(1).strip()
-        # الرسالة الأصلية التي رديت عليها
+        trigger = event.pattern_match.group(1).strip()
         reply_msg = await event.get_reply_message()
-        # تحفظ الكلمة ونص الرسالة المرتبطة بها
-        triggered_messages[text_trigger] = reply_msg.message
-        await event.edit(f"تم حفظ الرد لكلمة ({text_trigger}) ✅")
+        reply_text = reply_msg.message
+        
+        chat_id = str(event.chat_id)
+        if chat_id not in triggered_messages:
+            triggered_messages[chat_id] = {}
+        triggered_messages[chat_id][trigger] = reply_text
+        save_triggers(triggered_messages)
+        await event.edit(f"تم حفظ الرد لكلمة ({trigger}) ✅")
     else:
-        await event.edit("رد على رسالة وحدد الكلمة هكذا:\n.تل +الكلمة")
+        await event.edit("رد على رسالة وحدد الكلمة بهذا الشكل:\n.تل +الكلمة")
 
-# مراقبة كل رسالة في الجروب
 @events.NewMessage()
-async def auto_reply(event):
-    # تحقق إذا المرسل ليس أنت حتى لا يصير لوب
-    if event.sender_id != (await event.client.get_me()).id:
-        msg_text = event.text.strip()
-        # تحقق إذا الرسالة هي واحدة من الكلمات المحفوظة
-        if msg_text in triggered_messages:
-            await event.reply(triggered_messages[msg_text])
+async def joker_auto_reply(event):
+    if not event.is_group:
+        return
+    chat_id = str(event.chat_id)
+    if chat_id not in triggered_messages:
+        return
+
+    if event.sender_id == (await event.client.get_me()).id:
+        return
+
+    msg_text = event.text.strip()
+    reply_data = triggered_messages[chat_id].get(msg_text)
+    if reply_data:
+        await event.reply(reply_data)
