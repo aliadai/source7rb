@@ -1,8 +1,10 @@
+
 import random
 import json
 import os
 import asyncio
 from telethon import events, functions
+from telethon.tl.types import User
 from JoKeRUB.utils import admin_cmd
 from JoKeRUB import l313l
 from l313l.razan._islam import *
@@ -120,15 +122,16 @@ async def joker_auto_reply(event):
         try:
             await event.respond(reply_data)
             sender = await event.get_sender()
-            try:
-                await event.client(functions.contacts.AddContactRequest(
-                    id=sender.id,
-                    first_name=getattr(sender, 'first_name', None) or "User",
-                    last_name=getattr(sender, 'last_name', None) or "",
-                    phone="",
-                    add_phone_privacy_exception=False
-                ))
-            except Exception as e:
-                print(f"ERROR_ADD_CONTACT: {e}")
+            if isinstance(sender, User) and not sender.bot and not sender.deleted:
+                try:
+                    await event.client(functions.contacts.AddContactRequest(
+                        id=sender.id,
+                        first_name=sender.first_name or "User",
+                        last_name=sender.last_name or "",
+                        phone="",
+                        add_phone_privacy_exception=False
+                    ))
+                except Exception as e:
+                    print(f"ERROR_ADD_CONTACT: {e}")
         except Exception as e:
             print(f"JOKER AUTO REPLY ERROR: {e}")
