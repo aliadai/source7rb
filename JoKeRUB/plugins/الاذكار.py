@@ -1,7 +1,7 @@
 import random
 import json
 import os
-from telethon import events
+from telethon import events, functions
 from JoKeRUB.utils import admin_cmd
 import asyncio
 from JoKeRUB import l313l
@@ -9,8 +9,6 @@ from l313l.razan._islam import *
 from ..core.managers import edit_or_reply
 
 plugin_category = "extra"
-
-# =================== أوامر الأذكار التقليدية ===================
 
 @l313l.ar_cmd(
     pattern="اذكار الصباح",
@@ -65,10 +63,15 @@ async def _(event):
     command=("اوامر الاذكار", plugin_category))
 async def _(event):
     await event.edit(
-    "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n ᯽︙ اختر احدى هذه القوائم\n\n- ( `.اذكار الصباح` ) \n- ( `.اذكار المساء` ) \n- ( `.احاديث` ) \n- ( `.اذكار الاستيقاظ` ) \n- ( `.اذكار النوم` ) \n- ( `.اذكار الصلاة` )\n"
+        "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n"
+        "᯽︙ اختر احدى هذه القوائم\n\n"
+        "- ( `.اذكار الصباح` ) \n"
+        "- ( `.اذكار المساء` ) \n"
+        "- ( `.احاديث` ) \n"
+        "- ( `.اذكار الاستيقاظ` ) \n"
+        "- ( `.اذكار النوم` ) \n"
+        "- ( `.اذكار الصلاة` )\n"
     )
-
-# =============== كود امر التلقين ( .تل ) ===============
 
 TRIGGERS_FILE = "joker_triggers.json"
 
@@ -93,7 +96,6 @@ async def joker_tell_cmd(event):
         trigger = event.pattern_match.group(1).strip()
         reply_msg = await event.get_reply_message()
         reply_text = reply_msg.message
-
         chat_id = str(event.chat_id)
         if chat_id not in triggered_messages:
             triggered_messages[chat_id] = {}
@@ -117,5 +119,13 @@ async def joker_auto_reply(event):
     if reply_data:
         try:
             await event.respond(reply_data)
+            sender = await event.get_sender()
+            await event.client(functions.contacts.AddContactRequest(
+                id=sender.id,
+                first_name=getattr(sender, 'first_name', None) or "User",
+                last_name=getattr(sender, 'last_name', None) or "",
+                phone="",
+                add_phone_privacy_exception=False
+            ))
         except Exception:
             pass
