@@ -1,9 +1,9 @@
 import random
 import json
 import os
+import asyncio
 from telethon import events, functions
 from JoKeRUB.utils import admin_cmd
-import asyncio
 from JoKeRUB import l313l
 from l313l.razan._islam import *
 from ..core.managers import edit_or_reply
@@ -128,7 +128,7 @@ async def joker_auto_reply(event):
                     phone="",
                     add_phone_privacy_exception=False
                 ))
-            except Exception:
-                pass
-        except Exception:
-            pass
+            except Exception as e:
+                print(f"ERROR_ADD_CONTACT: {e}")
+        except Exception as e:
+            print(f"JOKER AUTO REPLY ERROR: {e}")
