@@ -8,67 +8,67 @@ from JoKeRUB import l313l
 from l313l.razan._islam import *
 from ..core.managers import edit_or_reply
 
-plugin_category = "extra" 
+plugin_category = "extra"
 
-# ---------------------- أوامر الأذكار التقليدية ----------------------
+# =================== أوامر الأذكار التقليدية ===================
 
 @l313l.ar_cmd(
     pattern="اذكار الصباح",
-    command=("اذكار الصباح", plugin_category),)
+    command=("اذكار الصباح", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           roze = random.choice(razan)
-           return await event.edit(f"{roze}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        roze = random.choice(razan)
+        return await event.edit(f"{roze}")
 
 @l313l.ar_cmd(
     pattern="اذكار المساء$",
-    command=("اذكار المساء", plugin_category),)
+    command=("اذكار المساء", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           ror = random.choice(roz)
-           return await event.edit(f"{ror}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        ror = random.choice(roz)
+        return await event.edit(f"{ror}")
 
 @l313l.ar_cmd(
     pattern="احاديث$",
-    command=("احاديث", plugin_category),)
+    command=("احاديث", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           me = random.choice(roza)
-           return await event.edit(f"{me}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        me = random.choice(roza)
+        return await event.edit(f"{me}")
 
 @l313l.ar_cmd(
     pattern="اذكار الاستيقاظ$",
-    command=("اذكار الاستيقاظ", plugin_category),)
+    command=("اذكار الاستيقاظ", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           az = random.choice(rozan)
-           return await event.edit(f"{az}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        az = random.choice(rozan)
+        return await event.edit(f"{az}")
 
 @l313l.ar_cmd(
     pattern="اذكار النوم$",
-    command=("اذكار النوم", plugin_category),)
+    command=("اذكار النوم", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           rr = random.choice(rozmuh)
-           return await event.edit(f"{rr}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        rr = random.choice(rozmuh)
+        return await event.edit(f"{rr}")
 
 @l313l.ar_cmd(
     pattern="اذكار الصلاة$",
-    command=("اذكار الصلاة", plugin_category),)
+    command=("اذكار الصلاة", plugin_category))
 async def _(event):
-     if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
-           rm = random.choice(rzane)
-           return await event.edit(f"{rm}")
+    if not event.text[0].isalpha() and event.text[0] not in ("/", "#", "@", "!"):
+        rm = random.choice(rzane)
+        return await event.edit(f"{rm}")
 
 @l313l.ar_cmd(
     pattern="اوامر الاذكار$",
-    command=("اوامر الاذكار", plugin_category),)
+    command=("اوامر الاذكار", plugin_category))
 async def _(event):
     await event.edit(
     "قائمة اوامر الاذكار :\n➖➖➖➖➖➖➖➖➖➖➖➖➖\n ᯽︙ اختر احدى هذه القوائم\n\n- ( `.اذكار الصباح` ) \n- ( `.اذكار المساء` ) \n- ( `.احاديث` ) \n- ( `.اذكار الاستيقاظ` ) \n- ( `.اذكار النوم` ) \n- ( `.اذكار الصلاة` )\n"
-            )           
+    )
 
-# -------------------- بداية كود التلقين ( .تل ) --------------------
+# =============== كود امر التلقين ( .تل ) ===============
 
 TRIGGERS_FILE = "joker_triggers.json"
 
@@ -93,7 +93,7 @@ async def joker_tell_cmd(event):
         trigger = event.pattern_match.group(1).strip()
         reply_msg = await event.get_reply_message()
         reply_text = reply_msg.message
-        
+
         chat_id = str(event.chat_id)
         if chat_id not in triggered_messages:
             triggered_messages[chat_id] = {}
@@ -103,18 +103,19 @@ async def joker_tell_cmd(event):
     else:
         await event.edit("رد على رسالة وحدد الكلمة بهذا الشكل:\n.تل +الكلمة")
 
-@events.NewMessage()
+@events.NewMessage(incoming=True)
 async def joker_auto_reply(event):
     if not event.is_group:
         return
     chat_id = str(event.chat_id)
     if chat_id not in triggered_messages:
         return
-
     if event.sender_id == (await event.client.get_me()).id:
         return
-
     msg_text = event.text.strip()
     reply_data = triggered_messages[chat_id].get(msg_text)
     if reply_data:
-        await event.reply(reply_data)
+        try:
+            await event.respond(reply_data)
+        except Exception:
+            pass
