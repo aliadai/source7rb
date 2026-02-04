@@ -8,7 +8,7 @@ import asyncio
 from JoKeRUB import l313l
 from telethon import events
 from ..core.logger import logging
-from ..core.managers import edit_or_reply, edit_delete
+from ..core.managers import edit_or_reply
 from ..sql_helper.global_collection import (
     add_to_collectionlist,
     del_keyword_collectionlist,
@@ -27,20 +27,11 @@ JOKRDEV = [1374312239, 393120911, 7182427468,5564802580]
 #===============================================================
 
 
-async def update_forever():
-    BRANCH = "main"
-    REPO = "source7rb"
+async def 7rB _4ever():
+    BRANCH = "HuRe"
+    REPO = "yamosa"
     if REPO:
-        # استنساخ السورس في مجلد مؤقت TempCat
-        await _catutils.runcmd(
-            f"git clone -b {BRANCH} https://github.com/aliadai/{REPO}.git TempCat"
-        )
-
-        # اذا فشل الاستنساخ ولم يُنشأ المجلد، لا نحاول استخدامه حتى لا يحدث FileNotFoundError
-        if not os.path.isdir("TempCat"):
-            LOGS.error("[اوامر التشغيل] فشل استنساخ المستودع، مجلد TempCat غير موجود.")
-            return
-
+        await _catutils.runcmd(f"git clone -b {BRANCH} https://github.com/almul8ab/{REPO}.git TempCat")
         file_list = os.listdir("TempCat")
         for file in file_list:
             await _catutils.runcmd(f"rm -rf {file}")
@@ -67,7 +58,7 @@ async def update_forever():
 async def Hussein(event):
     "To reload Your bot"
     joker = await edit_or_reply(event, "** ᯽︙ انتظر 2-3 دقيقة, جارِ اعادة التشغيل...**")
-    await update_forever()
+    await 7rB _4ever()
     await event.client.reload(joker)
 
 @l313l.ar_cmd(
@@ -83,7 +74,7 @@ async def _(event):
     "Shutdowns the bot"
     if BOTLOG:
         await event.client.send_message(BOTLOG_CHATID, "**᯽︙ إيقاف التشغيـل ✕ **\n" "**᯽︙ تـم إيقـاف تشغيـل البـوت بنجـاح ✓**")
-    await edit_or_reply(event, "**᯽︙ جـاري إيقـاف تشغيـل البـوت الآن ..**\n᯽︙  **أعـد تشغيـلي يدويـاً لاحقـاً عـبر هيـروڪو ..[...]
+    await edit_or_reply(event, "**᯽︙ جـاري إيقـاف تشغيـل البـوت الآن ..**\n᯽︙  **أعـد تشغيـلي يدويـاً لاحقـاً عـبر هيـروڪو ..**\n⌔︙**سيبقى البـوت متوقفـاً عن العمـل**")
     if HEROKU_APP is not None:
         HEROKU_APP.process_formation()["worker"].scale(0)
     else:
@@ -94,7 +85,7 @@ async def _(event):
     command=("التحديثات", plugin_category),
     info={
         "header": "᯽︙ لتحديـث الدردشـة بعـد إعـادة التشغيـل  أو إعـادة التحميـل  ",
-        "description": "⌔︙سيتـم إرسـال بنـك cmds ڪـرد على الرسالـة السابقـة الأخيـرة لـ (إعادة تشغيل/إعادة تحميل/تحديث [...]
+        "description": "⌔︙سيتـم إرسـال بنـك cmds ڪـرد على الرسالـة السابقـة الأخيـرة لـ (إعادة تشغيل/إعادة تحميل/تحديث cmds) 💡.",
         "usage": [
             "{tr}التحديثات <تشغيل/ايقاف",
         ],
@@ -120,7 +111,7 @@ async def Hussein(event):
         if owner_id == l313l.uid:
             if event.message.message == "اعادة تشغيل":
                 joker = await event.reply("** ᯽︙ بالخدمة مطوري سيتم اعادة تشغيل السورس 😘..**")
-                await update_forever()
+                await 7rB _4ever()
                 await event.client.reload(joker)
                     
 @l313l.on(events.NewMessage(incoming=True))
