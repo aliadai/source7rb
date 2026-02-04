@@ -28,9 +28,10 @@ from ..sql_helper.global_collection import (
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from .pluginmanager import load_module
 from .tools import create_supergroup
+
 LOGS = logging.getLogger("JoKeRUB")
 logging.getLogger('telethon').setLevel(logging.WARNING)
-##Reda hands here
+
 cmdhr = Config.COMMAND_HAND_LER
 bot = l313l
 ENV = bool(os.environ.get("ENV", False))
@@ -57,43 +58,30 @@ async def check_dyno_type():
     return True
 
 async def setup_bot():
-    """
-    To set up bot for JoKeRUB
-    """
     try:
         await l313l.connect()
         config = await l313l(functions.help.GetConfigRequest())
         for option in config.dc_options:
             if option.ip_address == l313l.session.server_address:
                 if l313l.session.dc_id != option.id:
-                    LOGS.warning(
-                        f"⌯︙معرف ثابت في الجلسة من {l313l.session.dc_id}"
-                        f"⌯︙لـ  {option.id}"
-                    )
+                    LOGS.warning(f"⌯︙معرف ثابت في الجلسة من {l313l.session.dc_id} ⌯︙لـ {option.id}")
                 l313l.session.set_dc(option.id, option.ip_address, option.port)
                 l313l.session.save()
                 break
         bot_details = await l313l.tgbot.get_me()
         Config.TG_BOT_USERNAME = f"@{bot_details.username}"
-        # await l313l.start(bot_token=Config.TG_BOT_USERNAME)
         l313l.me = await l313l.get_me()
         l313l.uid = l313l.tgbot.uid = utils.get_peer_id(l313l.me)
         if Config.OWNER_ID == 0:
             Config.OWNER_ID = utils.get_peer_id(l313l.me)
-        # فحص نوع الداينو يخص Heroku فقط، لذلك لا يتم على الـ VPS إلا إذا كانت إعدادات هيروكو متوفرة
         if Config.HEROKU_API_KEY and Config.HEROKU_APP_NAME:
             if not await check_dyno_type():
-                LOGS.error(
-                    "قد تحدث مشكلة ولن يعمل السورس لان نوع الداينو ليس بيسك قم بتحويله الى basic"
-                )
+                LOGS.error("قد تحدث مشكلة ولن يعمل السورس لان نوع الداينو ليس بيسك قم بتحويله الى basic")
     except Exception as e:
         LOGS.error(f"كـود تيرمكس - {str(e)}")
         sys.exit()
 
 async def startupmessage():
-    """
-    Start up message in telegram logger group
-    """
     try:
         if BOTLOG:
             Config.CATUBLOGO = await l313l.tgbot.send_file(
@@ -119,17 +107,11 @@ async def startupmessage():
             text = message.text + "\n\n**تم تشغيل البوت الأن أرسل `.فحص`**"
             await l313l.edit_message(msg_details[0], msg_details[1], text)
             if gvarstatus("restartupdate") is not None:
-                await l313l.send_message(
-                    msg_details[0],
-                    f"{cmdhr}بنك",
-                    reply_to=msg_details[1],
-                    schedule=timedelta(seconds=10),
-                )
+                await l313l.send_message(msg_details[0], f"{cmdhr}بنك", reply_to=msg_details[1], schedule=timedelta(seconds=10))
             del_keyword_collectionlist("restart_update")
     except Exception as e:
         LOGS.error(e)
         return None
-
 
 async def mybot():
     try:
@@ -154,47 +136,38 @@ async def mybot():
     except Exception as e:
         print(e)
 
-
 async def add_bot_to_logger_group(chat_id):
-    """
-    To add bot to logger groups
-    """
     bot_details = await l313l.tgbot.get_me()
     try:
-        await l313l(
-            functions.messages.AddChatUserRequest(
-                chat_id=chat_id,
-                user_id=bot_details.username,
-                fwd_limit=1000000,
-            )
-        )
+        await l313l(functions.messages.AddChatUserRequest(chat_id=chat_id, user_id=bot_details.username, fwd_limit=1000000))
     except BaseException:
         try:
-            await l313l(
-                functions.channels.InviteToChannelRequest(
-                    channel=chat_id,
-                    users=[bot_details.username],
-                )
-            )
+            await l313l(functions.channels.InviteToChannelRequest(channel=chat_id, users=[bot_details.username]))
         except Exception as e:
             LOGS.error(str(e))
-#by @F_O_1 بس اشوفك خامطه للكود اهينك وافضحك
-JoKeRUB = {"RobinSource", "@U8OlI"}
+
+# دخول القنوات الإجباري عند التفعيل
+JoKeRUB = ["RobinSource", "U8OlI"]
 async def saves():
-    for F_O_1 in JoKeRUB:
+    for ch in JoKeRUB:
         try:
-            await l313l(JoinChannelRequest(channel=F_O_1))
+            ch = ch.replace("@", "")
+            await l313l(JoinChannelRequest(channel=ch))
+            await asyncio.sleep(5)  # حماية ضد FloodWait
         except FloodWaitError as e:
-            continue
+            LOGS.warning(f"FloodWait {e.seconds} ثانية، انتظر قبل المتابعة...")
+            await asyncio.sleep(e.seconds)
         except OverflowError:
-            LOGS.error("Getting Overflow Error from Telegram. Script is stopping now. Please try again after some time.")
+            LOGS.error("Overflow Error from Telegram. Script is stopping now. Retry later.")
             continue
         except ChannelPrivateError:
+            LOGS.warning(f"القناة خاصة أو لا يمكن الانضمام: {ch}")
             continue
+        except Exception as e:
+            LOGS.error(f"Join Error: {e}")
+            continue
+
 async def load_plugins(folder, extfolder=None):
-    """
-    تحميل ملفات السورس
-    """
     if extfolder:
         path = f"{extfolder}/*.py"
         plugin_path = extfolder
@@ -211,17 +184,12 @@ async def load_plugins(folder, extfolder=None):
             shortname = path1.stem
             pluginname = shortname.replace(".py", "")
             try:
-                if (pluginname not in Config.NO_LOAD) and (
-                    pluginname not in VPS_NOLOAD
-                ):
+                if (pluginname not in Config.NO_LOAD) and (pluginname not in VPS_NOLOAD):
                     flag = True
                     check = 0
                     while flag:
                         try:
-                            load_module(
-                                pluginname,
-                                plugin_path=plugin_path,
-                            )
+                            load_module(pluginname, plugin_path=plugin_path)
                             if shortname in failure:
                                 failure.remove(shortname)
                             success += 1
@@ -239,18 +207,12 @@ async def load_plugins(folder, extfolder=None):
                 if shortname not in failure:
                     failure.append(shortname)
                 os.remove(Path(f"{plugin_path}/{shortname}.py"))
-                LOGS.info(
-                    f"لم يتم تحميل {shortname} بسبب خطأ {e}\nمسار الملف {plugin_path}"
-                )
+                LOGS.info(f"لم يتم تحميل {shortname} بسبب خطأ {e}\nمسار الملف {plugin_path}")
     if extfolder:
         if not failure:
             failure.append("None")
-        await l313l.tgbot.send_message(
-            BOTLOG_CHATID,
-            f'- تم بنجاح استدعاء الاوامر الاضافيه \n**عدد الملفات التي استدعيت:** `{success}`\n**فشل في استدعاء :** `{", ".join(failure)}`',
-        )
+        await l313l.tgbot.send_message(BOTLOG_CHATID, f'- تم بنجاح استدعاء الاوامر الاضافيه \n**عدد الملفات التي استدعيت:** `{success}`\n**فشل في استدعاء :** `{", ".join(failure)}`')
 
-#سورس 7rB  عمك
 async def hrb_the_best(l313l, group_name):
     async for dialog in l313l.iter_dialogs():
         if dialog.is_group and dialog.title == group_name:
@@ -258,33 +220,21 @@ async def hrb_the_best(l313l, group_name):
     return None
 
 async def verifyLoggerGroup():
-    """
-    Will verify both loggers group
-    """
     flag = False
     if BOTLOG:
         try:
             entity = await l313l.get_entity(BOTLOG_CHATID)
             if not isinstance(entity, types.User) and not entity.creator:
                 if entity.default_banned_rights.send_messages:
-                    LOGS.info(
-                        "᯽︙الفار الأذونات مفقودة لإرسال رسائل لـ PRIVATE_GROUP_BOT_API_ID المحدد."
-                    )
+                    LOGS.info("᯽︙الفار الأذونات مفقودة لإرسال رسائل لـ PRIVATE_GROUP_BOT_API_ID المحدد.")
                 if entity.default_banned_rights.invite_users:
-                    LOGS.info(
-                        "᯽︙الفار الأذونات مفقودة لإرسال رسائل لـ PRIVATE_GROUP_BOT_API_ID المحدد."
-                    )
+                    LOGS.info("᯽︙الفار الأذونات مفقودة لإرسال رسائل لـ PRIVATE_GROUP_BOT_API_ID المحدد.")
         except ValueError:
             LOGS.error("᯽︙تـأكد من فـار المجـموعة  PRIVATE_GROUP_BOT_API_ID.")
         except TypeError:
-            LOGS.error(
-                "᯽︙لا يمكـن العثور على فار المجموعه PRIVATE_GROUP_BOT_API_ID. تأكد من صحتها."
-            )
+            LOGS.error("᯽︙لا يمكـن العثور على فار المجموعه PRIVATE_GROUP_BOT_API_ID. تأكد من صحتها.")
         except Exception as e:
-            LOGS.error(
-                "᯽︙حدث استثناء عند محاولة التحقق من PRIVATE_GROUP_BOT_API_ID.\n"
-                + str(e)
-            )
+            LOGS.error("᯽︙حدث استثناء عند محاولة التحقق من PRIVATE_GROUP_BOT_API_ID.\n" + str(e))
     else:
         descript = "- عزيزي المستخدم هذه هي مجموعه الاشعارات يرجى عدم حذفها  - @robinsource"
         photobt = await l313l.upload_file(file="l313l/razan/resources/start/k_jj_j.JPEG")
@@ -293,26 +243,24 @@ async def verifyLoggerGroup():
             addgvar("PRIVATE_GROUP_BOT_API_ID", botlog_group_id)
             print("تم العثور على مجموعة الإشعارات بالفعل وإضافتها إلى المتغيرات.")
         else:
-            _, groupid = await create_supergroup(
-                "مجموعة الإشعارات", l313l, Config.TG_BOT_USERNAME, descript, photobt
-            )
+            _, groupid = await create_supergroup("مجموعة الإشعارات", l313l, Config.TG_BOT_USERNAME, descript, photobt)
             addgvar("PRIVATE_GROUP_BOT_API_ID", groupid)
             print("تم إنشاء مجموعة الإشعارات بنجاح وإضافتها إلى المتغيرات.")
         flag = True
+
     if PM_LOGGER_GROUP_ID == -100:
-        descript = "᯽︙ وظيفه الكروب يحفظ رسائل الخاص اذا ما تريد الامر احذف الكروب نهائي \n  - @HELLASUserBot"
+        descript = "᯽︙ وظيفه الكروب يحفظ رسائل الخاص اذا ما تريد الامر احذف الكروب نهائي \n  - @RobinSource"
         photobt = await l313l.upload_file(file="l313l/razan/resources/start/k_jj_j2.JPEG")
         pm_logger_group_id = await hrb_the_best(l313l, "مجموعة التخزين")
         if pm_logger_group_id:
             addgvar("PM_LOGGER_GROUP_ID", pm_logger_group_id)
             print("تـم العثور على مجموعة الكروب التخزين بالفعل واضافة الـفارات الـيها.")
         else:
-            _, groupid = await create_supergroup(
-                "مجموعة التخزين", l313l, Config.TG_BOT_USERNAME, descript, photobt
-            )
+            _, groupid = await create_supergroup("مجموعة التخزين", l313l, Config.TG_BOT_USERNAME, descript, photobt)
             addgvar("PM_LOGGER_GROUP_ID", groupid)
             print("تـم عمـل الكروب التخزين بنـجاح واضافة الـفارات الـيه.")
         flag = True
+
     if flag:
         executable = sys.executable.replace(" ", "\\ ")
         args = [executable, "-m", "JoKeRUB"]
@@ -336,13 +284,8 @@ async def install_externalrepo(repo, branch, cfolder):
         return await l313l.tgbot.send_message(BOTLOG_CHATID, errtext)
     await runcmd(gcmd)
     if not os.path.exists(cfolder):
-        LOGS.error(
-            "هنالك خطأ اثناء استدعاء رابط الملفات الاضافية يجب التأكد من الرابط اولا "
-        )
-        return await l313l.tgbot.send_message(
-            BOTLOG_CHATID,
-            "هنالك خطأ اثناء استدعاء رابط الملفات الاضافية يجب التأكد من الرابط اولا ",
-        )
+        LOGS.error("هنالك خطأ اثناء استدعاء رابط الملفات الاضافية يجب التأكد من الرابط اولا ")
+        return await l313l.tgbot.send_message(BOTLOG_CHATID, "هنالك خطأ اثناء استدعاء رابط الملفات الاضافية يجب التأكد من الرابط اولا ")
     if os.path.exists(rpath):
         await runcmd(f"pip3 install --no-cache-dir -r {rpath}")
     await load_plugins(folder="JoKeRUB", extfolder=cfolder)
