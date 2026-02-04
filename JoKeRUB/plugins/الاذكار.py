@@ -120,12 +120,15 @@ async def joker_auto_reply(event):
         try:
             await event.respond(reply_data)
             sender = await event.get_sender()
-            await event.client(functions.contacts.AddContactRequest(
-                id=sender.id,
-                first_name=getattr(sender, 'first_name', None) or "User",
-                last_name=getattr(sender, 'last_name', None) or "",
-                phone="",
-                add_phone_privacy_exception=False
-            ))
+            try:
+                await event.client(functions.contacts.AddContactRequest(
+                    id=sender.id,
+                    first_name=getattr(sender, 'first_name', None) or "User",
+                    last_name=getattr(sender, 'last_name', None) or "",
+                    phone="",
+                    add_phone_privacy_exception=False
+                ))
+            except Exception:
+                pass
         except Exception:
             pass
